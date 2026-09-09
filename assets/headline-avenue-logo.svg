@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+<title id="title">Headline Avenue</title>
+<desc id="desc">Headline Avenue HA monogram in blue, white, and gold.</desc>
+<defs>
+  <radialGradient id="bg" cx="50%" cy="38%" r="70%">
+    <stop offset="0" stop-color="#0d2443"/>
+    <stop offset="0.55" stop-color="#050a14"/>
+    <stop offset="1" stop-color="#010307"/>
+  </radialGradient>
+  <linearGradient id="ring" x1="0" y1="1" x2="1" y2="0">
+    <stop offset="0" stop-color="#ffd34d"/>
+    <stop offset="0.36" stop-color="#00b7ff"/>
+    <stop offset="0.78" stop-color="#2f70ff"/>
+    <stop offset="1" stop-color="#64f1ff"/>
+  </linearGradient>
+  <linearGradient id="a" x1="0" y1="1" x2="1" y2="0">
+    <stop offset="0" stop-color="#2369ff"/>
+    <stop offset="1" stop-color="#39e8ff"/>
+  </linearGradient>
+  <filter id="glow"><feGaussianBlur stdDeviation="6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+</defs>
+<circle cx="256" cy="256" r="238" fill="url(#bg)"/>
+<circle cx="256" cy="256" r="238" fill="none" stroke="url(#ring)" stroke-width="8" filter="url(#glow)"/>
+<path d="M104 218h61l20-74h56l-61 224h-56l26-96h-61zm141-74h58l-61 224h-58z" fill="#fff"/>
+<path d="M300 144h66l48 224h-61l-9-48h-76l-34 48h-67zm-1 126h36l-12-66z" fill="url(#a)"/>
+<g fill="#00b7ff" opacity=".9">
+  <path d="M391 174c28 20 28 54 0 74l-8-12c18-14 18-36 0-50z"/>
+  <path d="M414 156c43 31 43 82 0 113l-8-12c33-24 33-65 0-89z"/>
+</g>
+<text x="256" y="406" text-anchor="middle" fill="#fff" font-size="34" font-weight="800" letter-spacing="8" font-family="Arial,Helvetica,sans-serif">HEADLINE</text>
+<text x="256" y="442" text-anchor="middle" fill="#00b7ff" font-size="26" font-weight="800" letter-spacing="12" font-family="Arial,Helvetica,sans-serif">AVENUE</text>
+<path d="M163 460h73" stroke="#ffd34d" stroke-width="4"/><path d="M276 460h73" stroke="#ffd34d" stroke-width="4"/>
+</svg>
