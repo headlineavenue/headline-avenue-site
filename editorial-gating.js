@@ -42,6 +42,8 @@ document.addEventListener("DOMContentLoaded", () => {
       .ha-gate-approval button{margin-top:7px;width:100%;border:1px solid #32677f;border-radius:7px;background:#082638;color:#8ce8ff;padding:8px 9px;font-weight:700;cursor:pointer}
       .ha-gate-approval button:disabled{opacity:.5;cursor:wait}
       #send-to-publish.ha-publish-blocked{background:#182230!important;color:#7f93a8!important;border-color:#293847!important;cursor:not-allowed!important;box-shadow:none!important}
+      .pack-item .ha-pack-review{color:#ffd34d!important}
+      .pack-item .ha-pack-approved{color:#57d9ff!important}
     `;
     document.head.appendChild(style);
   }
@@ -65,7 +67,23 @@ document.addEventListener("DOMContentLoaded", () => {
     const state = (document.getElementById("story-pack-state")?.textContent || "").toLowerCase();
     const list = document.getElementById("pack-list");
     const hasRows = Boolean(list && !list.querySelector(".empty-pack") && list.children.length);
-    return state.includes("ready") || state.includes("review") || hasRows;
+    return state.includes("ready") || state.includes("review") || state.includes("approved") || hasRows;
+  }
+
+  function syncPackLabels(status) {
+    if (!packExists()) return;
+    document.querySelectorAll("#pack-list .pack-item span").forEach(label => {
+      label.classList.remove("ha-pack-review", "ha-pack-approved");
+      if (status === "review_required") {
+        label.textContent = "Review required";
+        label.classList.add("ha-pack-review");
+      } else if (status === "approved") {
+        label.textContent = "Editor approved ✓";
+        label.classList.add("ha-pack-approved");
+      } else if (status === "ready") {
+        label.textContent = "Ready ✓";
+      }
+    });
   }
 
   function renderGate(gate) {
@@ -119,9 +137,20 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const packState = document.getElementById("story-pack-state");
-    if (packState && packExists() && status === "review_required") {
-      packState.textContent = "Review required";
+    if (packState && packExists()) {
+      if (status === "review_required") {
+        packState.textContent = "Review required";
+        packState.classList.remove("verified-text");
+      } else if (status === "approved") {
+        packState.textContent = "Editor approved";
+        packState.classList.add("verified-text");
+      } else if (status === "ready") {
+        packState.textContent = "Ready";
+        packState.classList.add("verified-text");
+      }
     }
+
+    syncPackLabels(status);
   }
 
   function escapeHtml(value) {
@@ -147,12 +176,12 @@ document.addEventListener("DOMContentLoaded", () => {
         lastFingerprint = fingerprint;
         renderGate(gate);
       } else {
-        // app-core may have re-enabled the button after Story Pack generation.
         const send = document.getElementById("send-to-publish");
         if (send && !gate.can_publish) {
           send.disabled = true;
           send.classList.add("ha-publish-blocked");
         }
+        syncPackLabels(gate.status);
       }
     } catch (error) {
       console.debug("Editorial gate check skipped:", error);
