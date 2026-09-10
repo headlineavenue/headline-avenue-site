@@ -229,6 +229,92 @@ document.addEventListener("DOMContentLoaded",()=>{
   document.getElementById("load-more-sources")?.addEventListener("click",()=>showToast("More sources will load from the backend."));
   applySourceFilters();
 
+
+  // Publisher / distribution desk
+  const publishJobs=[...document.querySelectorAll(".publish-job")];
+  const publishTabs=[...document.querySelectorAll("[data-publish-tab]")];
+  let publishStatus="draft";
+  let scheduleMode="now";
+
+  const applyPublishFilter=()=>{
+    publishJobs.forEach(job=>job.hidden=job.dataset.publishStatus!==publishStatus);
+    const visible=publishJobs.filter(j=>!j.hidden);
+    const empty=document.getElementById("publish-empty");
+    if(empty)empty.hidden=visible.length!==0;
+  };
+
+  publishTabs.forEach(tab=>tab.addEventListener("click",()=>{
+    publishTabs.forEach(t=>t.classList.remove("active"));
+    tab.classList.add("active");
+    publishStatus=tab.dataset.publishTab;
+    applyPublishFilter();
+  }));
+
+  const updatePublisherButton=()=>{
+    const checked=[...document.querySelectorAll("[data-publish-destination]:checked")];
+    const btn=document.getElementById("publisher-submit");
+    if(!btn)return;
+    if(scheduleMode==="draft"){btn.textContent="Save as draft →";return}
+    if(scheduleMode==="later"){btn.textContent="Schedule for "+checked.length+" destination"+(checked.length===1?"":"s")+" →";return}
+    btn.textContent="Publish to "+checked.length+" destination"+(checked.length===1?"":"s")+" →";
+  };
+
+  document.querySelectorAll("[data-publish-destination]").forEach(cb=>cb.addEventListener("change",updatePublisherButton));
+
+  document.querySelectorAll("[data-schedule-mode]").forEach(btn=>btn.addEventListener("click",()=>{
+    scheduleMode=btn.dataset.scheduleMode;
+    document.querySelectorAll("[data-schedule-mode]").forEach(b=>b.classList.toggle("selected",b===btn));
+    const dt=document.getElementById("schedule-datetime");
+    if(dt)dt.hidden=scheduleMode!=="later";
+    const label=document.getElementById("publish-schedule-label");
+    if(label)label.textContent=scheduleMode==="now"?"Publish now":scheduleMode==="later"?"Choose date and time":"Keep in newsroom";
+    updatePublisherButton();
+  }));
+
+  document.querySelectorAll("[data-publish-open]").forEach(btn=>btn.addEventListener("click",()=>{
+    const job=btn.closest(".publish-job");
+    publishJobs.forEach(j=>j.classList.toggle("selected",j===job));
+    const titleInput=document.getElementById("publish-title-input");
+    if(titleInput)titleInput.value=job?.dataset.jobTitle||"";
+    const state=document.querySelector(".inspector-state");
+    if(state)state.textContent=(job?.dataset.publishStatus||"draft").toUpperCase();
+    showToast("Publishing job loaded in inspector");
+  }));
+
+  document.querySelectorAll(".destination-card").forEach(card=>card.addEventListener("click",()=>{
+    card.classList.toggle("active");
+    if(card.dataset.destination==="tiktok"&&card.classList.contains("active"))showToast("TikTok is available in sandbox only in this prototype.");
+  }));
+
+  document.getElementById("compose-publish-btn")?.addEventListener("click",()=>{
+    publishStatus="draft";
+    publishTabs.forEach(t=>t.classList.toggle("active",t.dataset.publishTab==="draft"));
+    applyPublishFilter();
+    document.querySelector(".publisher-aside")?.scrollIntoView({behavior:"smooth",block:"start"});
+    showToast("New publish job ready for review");
+  });
+
+  document.getElementById("manage-destinations")?.addEventListener("click",()=>showToast("Destination management will connect to authorized platform accounts."));
+
+  document.getElementById("publisher-submit")?.addEventListener("click",()=>{
+    const checked=[...document.querySelectorAll("[data-publish-destination]:checked")].map(x=>x.value);
+    if(!checked.length){showToast("Choose at least one destination.");return}
+    if(checked.includes("TikTok")){showToast("TikTok is sandbox-only until production access is approved.");return}
+    if(scheduleMode==="later"){
+      const date=document.getElementById("publish-date")?.value;
+      const time=document.getElementById("publish-time")?.value;
+      if(!date||!time){showToast("Choose a schedule date and time.");return}
+      showToast("Publish job scheduled in the prototype");
+      return;
+    }
+    if(scheduleMode==="draft"){showToast("Publish job saved as draft");return}
+    showToast("Prototype ready — live publishing backend not connected yet");
+  });
+
+  document.getElementById("publisher-save-draft")?.addEventListener("click",()=>showToast("Publishing changes saved in this prototype."));
+  updatePublisherButton();
+  applyPublishFilter();
+
   document.querySelectorAll("[data-create-demo]").forEach(b=>b.addEventListener("click",()=>openWorkspace("Story opportunity from Radar","Radar-discovered source")));
   document.getElementById("back-radar")?.addEventListener("click",()=>openView("home"));
   document.getElementById("new-story-btn")?.addEventListener("click",()=>openView("create"));
