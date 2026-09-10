@@ -1,18 +1,21 @@
 // Headline Avenue frontend bootstrap.
 // Keep the proven product-demo interactions in app-core.js and layer the
-// source-intelligence integration on top without duplicating the full UI app.
+// source/editorial intelligence integrations on top without duplicating the UI app.
 (() => {
   window.HeadlineAvenueRuntime = window.HeadlineAvenueRuntime || {
     sourceId: null,
     storyId: null,
-    analysis: null
+    analysis: null,
+    selectedAngle: null,
+    editorialVariants: null,
+    editorialSelection: null
   };
 
   const nativeFetch = window.fetch.bind(window);
   window.__haNativeFetch = nativeFetch;
 
   // Observe the real API records created by the existing Create workflow so
-  // the intelligence layer can analyze the exact Story that was just saved.
+  // the intelligence layers can act on the exact Story that was just saved.
   window.fetch = async (...args) => {
     const response = await nativeFetch(...args);
 
@@ -34,6 +37,7 @@
           if (!data?.id) return;
           window.HeadlineAvenueRuntime.storyId = data.id;
           window.HeadlineAvenueRuntime.sourceId = data.source_id || window.HeadlineAvenueRuntime.sourceId;
+          window.HeadlineAvenueRuntime.editorialSelection = null;
           window.dispatchEvent(new CustomEvent("ha:story-created", { detail: data }));
         }).catch(() => {});
       }
@@ -47,21 +51,27 @@
   let domReady = false;
   document.addEventListener("DOMContentLoaded", () => { domReady = true; }, { once: true });
 
+  const version = "20260910-0645";
   Promise.all([
-    nativeFetch("app-core.js?v=20260910-0535", { cache: "no-store" }).then(r => {
+    nativeFetch(`app-core.js?v=${version}`, { cache: "no-store" }).then(r => {
       if (!r.ok) throw new Error("Could not load app-core.js");
       return r.text();
     }),
-    nativeFetch("story-intelligence.js?v=20260910-0535", { cache: "no-store" }).then(r => {
+    nativeFetch(`story-intelligence.js?v=${version}`, { cache: "no-store" }).then(r => {
       if (!r.ok) throw new Error("Could not load story-intelligence.js");
       return r.text();
+    }),
+    nativeFetch(`editorial-intelligence.js?v=${version}`, { cache: "no-store" }).then(r => {
+      if (!r.ok) throw new Error("Could not load editorial-intelligence.js");
+      return r.text();
     })
-  ]).then(([core, intelligence]) => {
+  ]).then(([core, intelligence, editorial]) => {
     (0, eval)(core);
     (0, eval)(intelligence);
+    (0, eval)(editorial);
 
     // app.js is a defer script. Usually the natural DOMContentLoaded event has
-    // not fired yet; if network loading took longer, replay it once so both
+    // not fired yet; if network loading took longer, replay it once so all
     // boot layers initialize in the same order.
     if (domReady) document.dispatchEvent(new Event("DOMContentLoaded"));
   }).catch(error => {
