@@ -5,8 +5,8 @@
 <meta name="theme-color" content="#02050a">
 <title>Headline Avenue — Product Demo</title>
 <link rel="icon" href="assets/headline-avenue-logo.png" type="image/png">
-<link rel="stylesheet" href="app.css?v=20260910-0105">
-<script defer src="app.js?v=20260910-0105"></script>
+<link rel="stylesheet" href="app.css?v=20260909-2340">
+<script defer src="app.js?v=20260909-2340"></script>
 </head>
 <body>
 <div class="app-shell">
@@ -30,19 +30,127 @@
     </header>
 
     <section id="view-home" class="app-view active">
-      <div class="demo-banner"><b>Interactive product prototype</b><span>This demo runs entirely in your browser. Source analysis is simulated until the backend is connected.</span></div>
-      <div class="radar-grid">
-        <article class="radar-card hot"><div class="radar-top"><span>EMERGING</span><b>+186%</b></div><h3>Spider-Man casting discussion</h3><p>Interview clips and fan discussion accelerating.</p><div class="radar-foot"><span>Entertainment</span><button class="mini-action" data-create-demo>Create story</button></div></article>
-        <article class="radar-card"><div class="radar-top"><span>RISING</span><b>+72%</b></div><h3>AI product announcement</h3><p>High cross-platform discussion velocity.</p><div class="radar-foot"><span>Technology</span><button class="mini-action" data-create-demo>Create story</button></div></article>
-        <article class="radar-card"><div class="radar-top"><span>RISING</span><b>+51%</b></div><h3>Major sports interview</h3><p>Strong quote-level engagement signals.</p><div class="radar-foot"><span>Sports</span><button class="mini-action" data-create-demo>Create story</button></div></article>
+      <div class="radar-head">
+        <div>
+          <span class="panel-kicker">RADAR / LIVE STORY INTELLIGENCE</span>
+          <h2>What is moving now</h2>
+          <p>Track rising conversations, source activity, and story opportunities before they become obvious.</p>
+        </div>
+        <div class="radar-head-actions">
+          <span class="radar-live"><i></i> LIVE SIGNALS</span>
+          <button class="primary-action" id="radar-create-btn">＋ Create story</button>
+        </div>
       </div>
 
-      <div class="workspace-card source-entry">
-        <div><span class="panel-kicker">CREATE FROM SOURCE</span><h2>Paste a source. Build the story.</h2><p>Start with a YouTube link. Later: audio, articles, PDFs, transcripts, RSS, and direct uploads.</p></div>
-        <form id="source-form">
-          <div class="source-input-wrap"><span>↗</span><input id="source-url" type="url" placeholder="https://www.youtube.com/watch?v=..." required><button type="submit">Analyze source</button></div>
-          <small id="source-help">Try any valid YouTube URL to experience the Story Workspace prototype.</small>
-        </form>
+      <div class="radar-metrics">
+        <article><span>ACTIVE SIGNALS</span><strong>24</strong><small>7 accelerating</small></article>
+        <article><span>HIGH-CONFIDENCE</span><strong class="metric-green">9</strong><small>Source-backed</small></article>
+        <article><span>WATCHLIST HITS</span><strong>13</strong><small>Last 6 hours</small></article>
+        <article><span>NEEDS REVIEW</span><strong class="metric-gold">3</strong><small>Context or sourcing</small></article>
+      </div>
+
+      <div class="radar-toolbar">
+        <div class="radar-tabs" role="tablist" aria-label="Radar category">
+          <button class="active" data-radar-tab="all">All signals <span>24</span></button>
+          <button data-radar-tab="entertainment">Entertainment <span>8</span></button>
+          <button data-radar-tab="technology">Technology <span>7</span></button>
+          <button data-radar-tab="sports">Sports <span>5</span></button>
+          <button data-radar-tab="culture">Culture <span>4</span></button>
+        </div>
+        <div class="radar-tools">
+          <label class="radar-search"><span>⌕</span><input id="radar-search-input" type="search" placeholder="Search topics or sources"></label>
+          <select id="radar-velocity-filter" aria-label="Filter by velocity">
+            <option value="all">All velocity</option>
+            <option value="surging">Surging</option>
+            <option value="rising">Rising</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="radar-command-layout">
+        <div class="radar-command-main">
+          <article class="radar-command-card trend-board">
+            <div class="radar-card-head">
+              <div><span class="panel-kicker">SIGNAL BOARD</span><h3>Emerging story opportunities</h3></div>
+              <span class="radar-refresh">Updated just now</span>
+            </div>
+
+            <div id="radar-signal-list" class="radar-signal-list">
+              <article class="radar-signal featured" data-radar-category="entertainment" data-radar-velocity="surging" data-radar-title="Spider-Man casting discussion" data-radar-source="IMDb interview fan discussion">
+                <div class="radar-rank"><strong>01</strong><span>+186%</span></div>
+                <div class="radar-signal-copy"><div class="signal-meta"><span class="signal-status surging">SURGING</span><em>Entertainment</em></div><h3>Spider-Man casting discussion</h3><p>Interview clips and fan conversation are accelerating around suit comparisons and casting details.</p><div class="signal-source"><b>3 sources</b><span>IMDb interview · YouTube · social discussion</span></div></div>
+                <div class="radar-spark"><i style="height:22%"></i><i style="height:31%"></i><i style="height:38%"></i><i style="height:54%"></i><i style="height:65%"></i><i style="height:82%"></i><i style="height:96%"></i></div>
+                <div class="radar-signal-actions"><button data-radar-watch>Watch</button><button class="mini-action" data-create-demo>Create story →</button></div>
+              </article>
+
+              <article class="radar-signal" data-radar-category="technology" data-radar-velocity="surging" data-radar-title="AI product announcement" data-radar-source="official keynote product blog">
+                <div class="radar-rank"><strong>02</strong><span>+72%</span></div>
+                <div class="radar-signal-copy"><div class="signal-meta"><span class="signal-status surging">SURGING</span><em>Technology</em></div><h3>AI product announcement</h3><p>Cross-platform discussion velocity is rising after a keynote and follow-up product release.</p><div class="signal-source"><b>4 sources</b><span>Official keynote · product blog · creator reactions</span></div></div>
+                <div class="radar-spark"><i style="height:27%"></i><i style="height:35%"></i><i style="height:48%"></i><i style="height:46%"></i><i style="height:63%"></i><i style="height:71%"></i><i style="height:84%"></i></div>
+                <div class="radar-signal-actions"><button data-radar-watch>Watch</button><button class="mini-action" data-create-demo>Create story →</button></div>
+              </article>
+
+              <article class="radar-signal" data-radar-category="sports" data-radar-velocity="rising" data-radar-title="Major sports interview" data-radar-source="post-game press room interview">
+                <div class="radar-rank"><strong>03</strong><span>+51%</span></div>
+                <div class="radar-signal-copy"><div class="signal-meta"><span class="signal-status rising">RISING</span><em>Sports</em></div><h3>Major sports interview</h3><p>A quote from a post-game interview is producing unusually strong completion and resharing signals.</p><div class="signal-source"><b>2 sources</b><span>Press room video · team social account</span></div></div>
+                <div class="radar-spark"><i style="height:30%"></i><i style="height:43%"></i><i style="height:39%"></i><i style="height:56%"></i><i style="height:62%"></i><i style="height:68%"></i><i style="height:75%"></i></div>
+                <div class="radar-signal-actions"><button data-radar-watch>Watch</button><button class="mini-action" data-create-demo>Create story →</button></div>
+              </article>
+
+              <article class="radar-signal" data-radar-category="culture" data-radar-velocity="rising" data-radar-title="Streaming series interview moment" data-radar-source="cast roundtable entertainment press">
+                <div class="radar-rank"><strong>04</strong><span>+38%</span></div>
+                <div class="radar-signal-copy"><div class="signal-meta"><span class="signal-status rising">RISING</span><em>Culture</em></div><h3>Streaming-series interview moment</h3><p>A cast roundtable is generating a highly quotable moment with strong editorial context.</p><div class="signal-source"><b>5 sources</b><span>Roundtable · entertainment press · fan discussion</span></div></div>
+                <div class="radar-spark"><i style="height:21%"></i><i style="height:33%"></i><i style="height:29%"></i><i style="height:44%"></i><i style="height:51%"></i><i style="height:61%"></i><i style="height:69%"></i></div>
+                <div class="radar-signal-actions"><button data-radar-watch>Watch</button><button class="mini-action" data-create-demo>Create story →</button></div>
+              </article>
+            </div>
+
+            <div id="radar-empty" class="radar-empty" hidden>No signals match these filters.</div>
+            <button class="radar-load-more" id="radar-load-more">Load more signals</button>
+          </article>
+
+          <article class="radar-command-card source-entry premium-source-entry">
+            <div>
+              <span class="panel-kicker">QUICK INGEST</span>
+              <h3>Already have the source?</h3>
+              <p>Paste a public URL and move directly from source material into Story Workspace.</p>
+            </div>
+            <form id="source-form">
+              <div class="source-input-wrap"><span>↗</span><input id="source-url" type="url" placeholder="Paste a YouTube or public source URL..." required><button type="submit">Analyze source</button></div>
+              <small id="source-help">Prototype analysis is simulated until the processing backend is connected.</small>
+            </form>
+          </article>
+        </div>
+
+        <aside class="radar-command-aside">
+          <article class="radar-command-card">
+            <div class="radar-card-head"><div><span class="panel-kicker">WATCHLIST PULSE</span><h3>What your desk is watching</h3></div><small>5 active</small></div>
+            <div class="radar-watchlist">
+              <button data-radar-watchlist><span class="watch-dot green"></span><div><b>Entertainment interviews</b><small>3 new signals · 12 min ago</small></div><em>+94%</em></button>
+              <button data-radar-watchlist><span class="watch-dot blue"></span><div><b>AI product launches</b><small>2 new signals · 28 min ago</small></div><em>+61%</em></button>
+              <button data-radar-watchlist><span class="watch-dot gold"></span><div><b>Sports press rooms</b><small>1 new signal · 1 hr ago</small></div><em>+43%</em></button>
+            </div>
+            <button class="secondary-source-btn" id="radar-manage-watchlists">Manage watchlists</button>
+          </article>
+
+          <article class="radar-command-card">
+            <div class="radar-card-head"><div><span class="panel-kicker">DESK BRIEF</span><h3>What changed</h3></div><span class="radar-live small"><i></i> LIVE</span></div>
+            <div class="desk-brief-list">
+              <div><span class="brief-time">2m</span><p><b>Spider-Man signal moved to #1</b><small>Velocity increased from +121% to +186%.</small></p></div>
+              <div><span class="brief-time">11m</span><p><b>New official source indexed</b><small>AI product announcement now has direct-source support.</small></p></div>
+              <div><span class="brief-time">24m</span><p><b>Sports quote crossed threshold</b><small>Completion signal moved above workspace baseline.</small></p></div>
+              <div><span class="brief-time">41m</span><p><b>1 signal sent for review</b><small>SourceGuard found a context mismatch in headline copy.</small></p></div>
+            </div>
+          </article>
+
+          <article class="radar-command-card confidence-card">
+            <div class="radar-card-head"><div><span class="panel-kicker">SIGNAL QUALITY</span><h3>Confidence mix</h3></div><b>88%</b></div>
+            <div class="confidence-meter"><i></i></div>
+            <div class="confidence-row"><span>Direct-source supported</span><b>14</b></div>
+            <div class="confidence-row"><span>Multi-source corroborated</span><b>7</b></div>
+            <div class="confidence-row"><span>Needs editorial review</span><b class="gold">3</b></div>
+          </article>
+        </aside>
       </div>
     </section>
 
