@@ -42,7 +42,116 @@ document.addEventListener("DOMContentLoaded",()=>{
   }
 
   document.getElementById("source-form")?.addEventListener("submit",e=>{e.preventDefault();analyze(document.getElementById("source-url").value.trim())});
-  document.getElementById("source-form-alt")?.addEventListener("submit",e=>{e.preventDefault();analyze(document.getElementById("source-url-alt").value.trim())});
+
+  // Story Studio / Create
+  const sourceTypeButtons=[...document.querySelectorAll("[data-source-type]")];
+  const sourcePanes=[...document.querySelectorAll("[data-source-pane]")];
+  let createSourceType="url";
+  let createBuildChoice="storypack";
+  let createEditorialMode="balanced";
+
+  const updateCreateSummary=()=>{
+    const formats=[...document.querySelectorAll("[data-create-format].selected")].map(b=>b.dataset.createFormat);
+    const label={storypack:"Full Story Pack",video:"Video",article:"Article",social:"Social package"}[createBuildChoice]||"Story Pack";
+    const mode=createEditorialMode.charAt(0).toUpperCase()+createEditorialMode.slice(1);
+    const summary=document.getElementById("create-summary");
+    if(summary)summary.textContent=label+" · "+(formats.length?formats.join(" + "):"No video format")+" · "+mode;
+    const guard=document.querySelector(".create-submit-row small");
+    if(guard)guard.textContent=document.getElementById("create-sourceguard")?.checked?"SourceGuard enabled":"SourceGuard off";
+  };
+
+  sourceTypeButtons.forEach(btn=>btn.addEventListener("click",()=>{
+    createSourceType=btn.dataset.sourceType;
+    sourceTypeButtons.forEach(b=>b.classList.toggle("active",b===btn));
+    sourcePanes.forEach(p=>p.classList.toggle("active",p.dataset.sourcePane===createSourceType));
+  }));
+
+  document.getElementById("sample-source")?.addEventListener("click",()=>{
+    document.getElementById("create-source-url").value="https://www.youtube.com/watch?v=demo-spiderman";
+  });
+  document.querySelector("[data-fill-article]")?.addEventListener("click",()=>{
+    document.getElementById("create-article-url").value="https://example.com/news/story";
+  });
+
+  [["create-file-upload","upload-file-name"],["create-audio-upload","audio-file-name"],["create-pdf-upload","pdf-file-name"]].forEach(([inputId,labelId])=>{
+    document.getElementById(inputId)?.addEventListener("change",e=>{
+      const file=e.target.files?.[0];
+      const label=document.getElementById(labelId);
+      if(label)label.textContent=file?file.name:"No file selected";
+    });
+  });
+
+  document.getElementById("create-transcript")?.addEventListener("input",e=>{
+    const counter=document.getElementById("transcript-count");
+    if(counter)counter.textContent=e.target.value.length+" characters";
+  });
+
+  document.querySelectorAll("[data-build-choice]").forEach(btn=>btn.addEventListener("click",()=>{
+    createBuildChoice=btn.dataset.buildChoice;
+    document.querySelectorAll("[data-build-choice]").forEach(b=>b.classList.toggle("selected",b===btn));
+    updateCreateSummary();
+  }));
+
+  document.querySelectorAll("[data-create-format]").forEach(btn=>btn.addEventListener("click",()=>{
+    btn.classList.toggle("selected");
+    updateCreateSummary();
+  }));
+
+  document.querySelectorAll("[data-editorial-mode]").forEach(btn=>btn.addEventListener("click",()=>{
+    createEditorialMode=btn.dataset.editorialMode;
+    document.querySelectorAll("[data-editorial-mode]").forEach(b=>b.classList.toggle("selected",b===btn));
+    updateCreateSummary();
+  }));
+
+  document.getElementById("create-sourceguard")?.addEventListener("change",updateCreateSummary);
+
+  document.querySelectorAll("[data-recent-url]").forEach(btn=>btn.addEventListener("click",()=>{
+    createSourceType="url";
+    sourceTypeButtons.forEach(b=>b.classList.toggle("active",b.dataset.sourceType==="url"));
+    sourcePanes.forEach(p=>p.classList.toggle("active",p.dataset.sourcePane==="url"));
+    const input=document.getElementById("create-source-url");
+    if(input){input.value=btn.dataset.recentUrl;input.focus()}
+    showToast("Recent source loaded");
+  }));
+
+  document.getElementById("create-builder-form")?.addEventListener("submit",e=>{
+    e.preventDefault();
+    let sourceLabel="";
+    let sourceUrl="";
+
+    if(createSourceType==="url"){
+      sourceUrl=document.getElementById("create-source-url")?.value.trim()||"";
+      try{new URL(sourceUrl)}catch{showToast("Paste a valid source URL.");return}
+      sourceLabel="Web source · "+sourceUrl;
+    }else if(createSourceType==="article"){
+      sourceUrl=document.getElementById("create-article-url")?.value.trim()||"";
+      try{new URL(sourceUrl)}catch{showToast("Paste a valid article URL.");return}
+      sourceLabel="Article · "+sourceUrl;
+    }else if(createSourceType==="upload"){
+      const file=document.getElementById("create-file-upload")?.files?.[0];
+      if(!file){showToast("Choose a video file first.");return}
+      sourceLabel="Video upload · "+file.name;
+    }else if(createSourceType==="audio"){
+      const file=document.getElementById("create-audio-upload")?.files?.[0];
+      if(!file){showToast("Choose an audio file first.");return}
+      sourceLabel="Audio upload · "+file.name;
+    }else if(createSourceType==="pdf"){
+      const file=document.getElementById("create-pdf-upload")?.files?.[0];
+      if(!file){showToast("Choose a PDF first.");return}
+      sourceLabel="PDF · "+file.name;
+    }else if(createSourceType==="transcript"){
+      const text=document.getElementById("create-transcript")?.value.trim()||"";
+      if(text.length<40){showToast("Add a little more source text first.");return}
+      sourceLabel="Transcript · "+text.length+" characters";
+    }
+
+    const buildLabel={storypack:"Story Pack",video:"Video story",article:"Article story",social:"Social story"}[createBuildChoice]||"Story";
+    openWorkspace(buildLabel+" workspace",sourceLabel,sourceUrl);
+    showToast("Source indexed — Story Workspace created");
+  });
+
+  updateCreateSummary();
+
   document.querySelectorAll("[data-create-demo]").forEach(b=>b.addEventListener("click",()=>openWorkspace("Story opportunity from Radar","Radar-discovered source")));
   document.getElementById("back-radar")?.addEventListener("click",()=>openView("home"));
   document.getElementById("new-story-btn")?.addEventListener("click",()=>openView("create"));
