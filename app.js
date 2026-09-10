@@ -6,6 +6,38 @@ document.addEventListener("DOMContentLoaded",()=>{
   const titles={home:"Radar",stories:"Stories",create:"Create",sources:"Sources",publish:"Publish",analytics:"Analytics"};
   let currentUrl="";
   let currentStoryTitle="Story detected from source";
+  let currentSourceId=null;
+  let currentStoryId=null;
+
+  // Real API mode is intentionally enabled only when the static UI is served
+  // locally. The public GitHub Pages demo stays prototype-only because an
+  // HTTPS page should not make mixed-content requests to a localhost HTTP API.
+  const localHosts=new Set(["localhost","127.0.0.1"]);
+  const API_ORIGIN=localHosts.has(window.location.hostname)?"http://127.0.0.1:8000":"";
+  const API_BASE=API_ORIGIN?API_ORIGIN+"/api/v1":"";
+
+  async function apiRequest(path,options={}){
+    if(!API_BASE)throw new Error("Real API mode requires the local frontend.");
+    const response=await fetch(API_BASE+path,{
+      headers:{"Content-Type":"application/json",...(options.headers||{})},
+      ...options
+    });
+    if(!response.ok){
+      let detail="";
+      try{detail=JSON.stringify(await response.json())}catch{detail=await response.text()}
+      throw new Error("API "+response.status+(detail?": "+detail:""));
+    }
+    if(response.status===204)return null;
+    return response.json();
+  }
+
+  async function apiIsReady(){
+    if(!API_ORIGIN)return false;
+    try{
+      const response=await fetch(API_ORIGIN+"/health");
+      return response.ok;
+    }catch{return false}
+  }
 
   const showToast=m=>{toast.textContent=m;toast.classList.add("show");setTimeout(()=>toast.classList.remove("show"),1800)};
 
@@ -18,6 +50,13 @@ document.addEventListener("DOMContentLoaded",()=>{
 
   navBtns.forEach(b=>b.addEventListener("click",()=>openView(b.dataset.view)));
 
+  if(API_ORIGIN){
+    apiIsReady().then(ready=>{
+      if(ready)showToast("Local API connected");
+      else showToast("Local UI ready — start the API on port 8000");
+    });
+  }
+
   function validYouTube(v){
     try{
       const u=new URL(v);
@@ -25,14 +64,18 @@ document.addEventListener("DOMContentLoaded",()=>{
     }catch{return false}
   }
 
-  function openWorkspace(storyTitle,sourceLabel,url=""){
+  function openWorkspace(storyTitle,sourceLabel,url="",ids={}){
     currentUrl=url;
     currentStoryTitle=storyTitle||"Story detected from source";
+    if(ids.sourceId!==undefined)currentSourceId=ids.sourceId;
+    if(ids.storyId!==undefined)currentStoryId=ids.storyId;
     views.forEach(x=>x.classList.remove("active"));
     document.getElementById("story-workspace").classList.add("active");
     title.textContent="Story Workspace";
     document.getElementById("story-title").textContent=currentStoryTitle;
     document.getElementById("story-source-label").textContent=sourceLabel||url||"Indexed source";
+    const save=document.getElementById("save-story");
+    if(save)save.textContent=currentStoryId&&API_BASE?"Saved ✓":"Save story";
   }
 
   function analyze(v){
@@ -154,40 +197,111 @@ document.addEventListener("DOMContentLoaded",()=>{
     showToast("Recent source loaded");
   }));
 
-  document.getElementById("create-builder-form")?.addEventListener("submit",e=>{
+  document.getElementById("create-builder-form")?.addEventListener("submit",async e=>{
     e.preventDefault();
     let sourceLabel="";
     let sourceUrl="";
+    let sourceTitle="";
+    let transcriptText=null;
+    const metadata={
+      build_choice:createBuildChoice,
+      editorial_mode:createEditorialMode,
+      sourceguard_enabled:Boolean(document.getElementById("create-sourceguard")?.checked)
+    };
 
     if(createSourceType==="url"){
       sourceUrl=document.getElementById("create-source-url")?.value.trim()||"";
-      try{new URL(sourceUrl)}catch{showToast("Paste a valid source URL.");return}
+      let parsed;
+      try{parsed=new URL(sourceUrl)}catch{showToast("Paste a valid source URL.");return}
+      sourceTitle=(parsed.hostname.replace(/^www\./,"")||"Web")+" source";
       sourceLabel="Web source · "+sourceUrl;
     }else if(createSourceType==="article"){
       sourceUrl=document.getElementById("create-article-url")?.value.trim()||"";
-      try{new URL(sourceUrl)}catch{showToast("Paste a valid article URL.");return}
+      let parsed;
+      try{parsed=new URL(sourceUrl)}catch{showToast("Paste a valid article URL.");return}
+      sourceTitle=(parsed.hostname.replace(/^www\./,"")||"Article")+" article";
       sourceLabel="Article · "+sourceUrl;
     }else if(createSourceType==="upload"){
       const file=document.getElementById("create-file-upload")?.files?.[0];
       if(!file){showToast("Choose a video file first.");return}
+      sourceTitle=file.name;
       sourceLabel="Video upload · "+file.name;
+      metadata.filename=file.name;
+      metadata.size=file.size;
+      metadata.content_type=file.type;
     }else if(createSourceType==="audio"){
       const file=document.getElementById("create-audio-upload")?.files?.[0];
       if(!file){showToast("Choose an audio file first.");return}
+      sourceTitle=file.name;
       sourceLabel="Audio upload · "+file.name;
+      metadata.filename=file.name;
+      metadata.size=file.size;
+      metadata.content_type=file.type;
     }else if(createSourceType==="pdf"){
       const file=document.getElementById("create-pdf-upload")?.files?.[0];
       if(!file){showToast("Choose a PDF first.");return}
+      sourceTitle=file.name;
       sourceLabel="PDF · "+file.name;
+      metadata.filename=file.name;
+      metadata.size=file.size;
+      metadata.content_type=file.type;
     }else if(createSourceType==="transcript"){
       const text=document.getElementById("create-transcript")?.value.trim()||"";
       if(text.length<40){showToast("Add a little more source text first.");return}
+      transcriptText=text;
+      sourceTitle="Pasted transcript";
       sourceLabel="Transcript · "+text.length+" characters";
     }
 
     const buildLabel={storypack:"Story Pack",video:"Video story",article:"Article story",social:"Social story"}[createBuildChoice]||"Story";
-    openWorkspace(buildLabel+" workspace",sourceLabel,sourceUrl);
-    showToast("Source indexed — Story Workspace created");
+
+    // Public GitHub Pages remains the polished prototype.
+    if(!API_BASE){
+      currentSourceId=null;
+      currentStoryId=null;
+      openWorkspace(buildLabel+" workspace",sourceLabel,sourceUrl);
+      showToast("Prototype workspace created — run the UI locally for real persistence");
+      return;
+    }
+
+    const submit=e.currentTarget.querySelector('button[type="submit"]');
+    const originalText=submit?.textContent;
+    if(submit){submit.disabled=true;submit.textContent="Building…"}
+
+    try{
+      if(!(await apiIsReady()))throw new Error("Headline Avenue API is not running on port 8000.");
+
+      const source=await apiRequest("/sources",{
+        method:"POST",
+        body:JSON.stringify({
+          workspace_slug:"headline-avenue",
+          kind:createSourceType==="upload"?"video":createSourceType,
+          title:sourceTitle||null,
+          original_url:sourceUrl||null,
+          transcript_text:transcriptText,
+          metadata
+        })
+      });
+
+      const story=await apiRequest("/stories",{
+        method:"POST",
+        body:JSON.stringify({
+          workspace_slug:"headline-avenue",
+          source_id:source.id,
+          title:buildLabel+" from "+(sourceTitle||"source"),
+          angle:createEditorialMode+" editorial treatment from the selected source.",
+          signal_score:null
+        })
+      });
+
+      openWorkspace(story.title,sourceLabel,sourceUrl,{sourceId:source.id,storyId:story.id});
+      showToast("Saved to backend — Story Workspace created");
+    }catch(error){
+      console.error(error);
+      showToast("Backend error — "+error.message);
+    }finally{
+      if(submit){submit.disabled=false;submit.textContent=originalText||"Build Story Workspace →"}
+    }
   });
 
   updateCreateSummary();
@@ -426,17 +540,61 @@ document.addEventListener("DOMContentLoaded",()=>{
 
   document.querySelectorAll(".format-grid button").forEach(b=>b.addEventListener("click",()=>b.classList.toggle("selected")));
 
-  document.getElementById("generate-pack")?.addEventListener("click",()=>{
-    const selected=[...document.querySelectorAll(".format-grid button.selected")].map(x=>x.textContent);
-    const all=[...new Set([...selected,"Headline","Summary","Source trail","Platform copy"])];
-    document.getElementById("pack-list").innerHTML=all.map(x=>'<div class="pack-item"><b>'+x+'</b><span>Ready ✓</span></div>').join("");
-    const count=document.getElementById("story-output-count");
-    if(count)count.textContent=all.length;
-    const state=document.getElementById("story-pack-state");
-    if(state){state.textContent="Ready";state.classList.add("verified-text")}
-    const send=document.getElementById("send-to-publish");
-    if(send)send.disabled=false;
-    showToast("Story Pack generated");
+  document.getElementById("generate-pack")?.addEventListener("click",async()=>{
+    const selected=[...document.querySelectorAll(".format-grid button.selected")].map(x=>x.textContent.trim());
+    const normalized={
+      "9:16":"9:16_video",
+      "16:9":"16:9_video",
+      "1:1":"1:1_video",
+      "4:5":"4:5_video",
+      "Article":"article",
+      "Carousel":"carousel",
+      "Newsletter":"newsletter",
+      "Thread":"thread"
+    };
+    const requested=[...new Set([
+      ...selected.map(x=>normalized[x]||x.toLowerCase().replace(/\s+/g,"_")),
+      "headline","summary","source_trail","platform_copy"
+    ])];
+
+    const button=document.getElementById("generate-pack");
+    const originalText=button?.textContent;
+    if(button){button.disabled=true;button.textContent="Generating…"}
+
+    const renderOutputs=outputs=>{
+      const pretty=value=>value
+        .replace(/_/g," ")
+        .replace(/^\d+:\d+ video$/i,m=>m.replace(" video",""))
+        .replace(/\b\w/g,c=>c.toUpperCase());
+      document.getElementById("pack-list").innerHTML=outputs.map(output=>
+        '<div class="pack-item"><b>'+pretty(output.output_type||output)+'</b><span>Ready ✓</span></div>'
+      ).join("");
+      const count=document.getElementById("story-output-count");
+      if(count)count.textContent=outputs.length;
+      const state=document.getElementById("story-pack-state");
+      if(state){state.textContent="Ready";state.classList.add("verified-text")}
+      const send=document.getElementById("send-to-publish");
+      if(send)send.disabled=false;
+    };
+
+    try{
+      if(API_BASE&&currentStoryId){
+        const result=await apiRequest("/story-packs/generate",{
+          method:"POST",
+          body:JSON.stringify({story_id:currentStoryId,formats:requested})
+        });
+        renderOutputs(result.outputs||[]);
+        showToast("Story Pack generated and saved to backend");
+      }else{
+        renderOutputs(requested);
+        showToast("Story Pack generated in prototype mode");
+      }
+    }catch(error){
+      console.error(error);
+      showToast("Story Pack error — "+error.message);
+    }finally{
+      if(button){button.disabled=false;button.textContent=originalText||"Generate Story Pack"}
+    }
   });
 
   document.getElementById("send-to-publish")?.addEventListener("click",()=>{
@@ -450,6 +608,10 @@ document.addEventListener("DOMContentLoaded",()=>{
   });
 
   document.getElementById("save-story")?.addEventListener("click",()=>{
+    if(API_BASE&&currentStoryId){
+      showToast("Story is already saved to the backend");
+      return;
+    }
     const list=document.getElementById("stories-list");
     if(list && !list.querySelector('[data-saved-story="true"]')){
       const row=document.createElement("article");
