@@ -155,7 +155,7 @@ def analyze_story(story_id: str, db: Session = Depends(get_db)) -> StoryAnalysis
         "source_title": extracted.title,
     }
     metadata["analysis"] = {
-        "engine": "deterministic-source-intelligence-v1",
+        "engine": "deterministic-source-intelligence-v2",
         "angle_count": len(angles),
         "top_score": angles[0]["score"],
     }
