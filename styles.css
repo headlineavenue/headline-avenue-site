@@ -107,13 +107,13 @@ footer{padding:38px 0 48px;border-top:1px solid rgba(255,255,255,.08);background
   position:relative;
   display:flex;
   align-items:center;
-  gap:8px;
+  gap:9px;
   height:100%;
   padding:0 27px;
   white-space:nowrap;
-  color:#78899c;
-  font-size:.57rem;
-  letter-spacing:.09em;
+  color:#9fb0c2;
+  font-size:.58rem;
+  letter-spacing:.085em;
   text-transform:uppercase;
 }
 .newswire-group span::after{
@@ -129,8 +129,10 @@ footer{padding:38px 0 48px;border-top:1px solid rgba(255,255,255,.08);background
   letter-spacing:.13em;
 }
 .newswire-group em{
-  color:#8a99aa;
+  color:#c8d4df;
   font-style:normal;
+  font-weight:600;
+  letter-spacing:.07em;
 }
 .newswire-group span:last-child b{color:#ffd24a}
 @keyframes newswireFlow{
