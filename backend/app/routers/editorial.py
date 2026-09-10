@@ -200,6 +200,39 @@ def _gate_for_story(db: Session, story: Story) -> EditorialGateOut:
     )
 
 
+def _promote_pack_outputs_after_approval(db: Session, story: Story, selection: StoryOutput) -> int:
+    promoted = 0
+    outputs = (
+        db.query(StoryOutput)
+        .filter(
+            StoryOutput.story_id == story.id,
+            StoryOutput.output_type != "editorial_selection",
+            StoryOutput.status == "needs_review",
+        )
+        .all()
+    )
+
+    for output in outputs:
+        content = dict(output.content_json or {})
+        gate = content.get("editorial_gate")
+        if not isinstance(gate, dict) or gate.get("selection_id") != selection.id:
+            continue
+        gate = dict(gate)
+        gate.update(
+            {
+                "publish_ready": True,
+                "selection_status": "approved",
+                "review_note": "Editor approval resolved the SourceGuard publishing gate.",
+            }
+        )
+        content["editorial_gate"] = gate
+        output.content_json = content
+        output.status = "ready"
+        promoted += 1
+
+    return promoted
+
+
 def _persist_selection(
     db: Session,
     story: Story,
@@ -341,7 +374,9 @@ def approve_editorial_review(
     }
     selection.content_json = content
     selection.status = "approved"
-    story.status = "editorial_ready"
+
+    promoted = _promote_pack_outputs_after_approval(db, story, selection)
+    story.status = "pack_ready" if promoted else "editorial_ready"
 
     db.commit()
     db.refresh(selection)
