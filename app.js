@@ -315,6 +315,57 @@ document.addEventListener("DOMContentLoaded",()=>{
   updatePublisherButton();
   applyPublishFilter();
 
+
+  // Analytics / editorial intelligence
+  const analyticsData={
+    "7d":{views:"486K",watch:"73%",engagement:"9.4%",packs:"8"},
+    "30d":{views:"1.84M",watch:"71%",engagement:"8.9%",packs:"27"},
+    "90d":{views:"4.92M",watch:"68%",engagement:"8.1%",packs:"71"}
+  };
+  const platformData={
+    all:{views:"1.84M",watch:"71%",engagement:"8.9%"},
+    youtube:{views:"846K",watch:"76%",engagement:"7.8%"},
+    instagram:{views:"699K",watch:"68%",engagement:"10.6%"},
+    tiktok:{views:"295K",watch:"70%",engagement:"8.3%"}
+  };
+  let analyticsPeriod="30d";
+  let analyticsPlatform="all";
+
+  const refreshAnalyticsMetrics=()=>{
+    const period=analyticsData[analyticsPeriod];
+    const platform=platformData[analyticsPlatform];
+    const views=document.getElementById("metric-views");
+    const watch=document.getElementById("metric-watch");
+    const engagement=document.getElementById("metric-engagement");
+    const packs=document.getElementById("metric-packs");
+    if(views)views.textContent=analyticsPlatform==="all"?period.views:platform.views;
+    if(watch)watch.textContent=analyticsPlatform==="all"?period.watch:platform.watch;
+    if(engagement)engagement.textContent=analyticsPlatform==="all"?period.engagement:platform.engagement;
+    if(packs)packs.textContent=period.packs;
+  };
+
+  document.querySelectorAll("[data-analytics-period]").forEach(btn=>btn.addEventListener("click",()=>{
+    analyticsPeriod=btn.dataset.analyticsPeriod;
+    document.querySelectorAll("[data-analytics-period]").forEach(b=>b.classList.toggle("active",b===btn));
+    refreshAnalyticsMetrics();
+    showToast("Analytics window changed to "+btn.textContent);
+  }));
+
+  document.getElementById("analytics-platform-filter")?.addEventListener("change",e=>{
+    analyticsPlatform=e.target.value;
+    refreshAnalyticsMetrics();
+    showToast(e.target.options[e.target.selectedIndex].text+" analytics loaded");
+  });
+
+  document.querySelectorAll("[data-performance-story]").forEach(btn=>btn.addEventListener("click",()=>{
+    showToast(btn.dataset.performanceStory+" performance detail will open here.");
+  }));
+  document.querySelectorAll("[data-recommendation]").forEach(btn=>btn.addEventListener("click",()=>{
+    showToast("Recommendation saved for the next Story Pack.");
+  }));
+  document.getElementById("view-all-performance")?.addEventListener("click",()=>showToast("Full performance table will open here."));
+  refreshAnalyticsMetrics();
+
   document.querySelectorAll("[data-create-demo]").forEach(b=>b.addEventListener("click",()=>openWorkspace("Story opportunity from Radar","Radar-discovered source")));
   document.getElementById("back-radar")?.addEventListener("click",()=>openView("home"));
   document.getElementById("new-story-btn")?.addEventListener("click",()=>openView("create"));
