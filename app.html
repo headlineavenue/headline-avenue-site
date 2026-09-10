@@ -5,8 +5,8 @@
 <meta name="theme-color" content="#02050a">
 <title>Headline Avenue — Product Demo</title>
 <link rel="icon" href="assets/headline-avenue-logo.png" type="image/png">
-<link rel="stylesheet" href="app.css?v=20260909-2237">
-<script defer src="app.js?v=20260909-2237"></script>
+<link rel="stylesheet" href="app.css?v=20260909-2305">
+<script defer src="app.js?v=20260909-2305"></script>
 </head>
 <body>
 <div class="app-shell">
@@ -47,11 +47,148 @@
     </section>
 
     <section id="view-create" class="app-view">
-      <div class="workspace-card">
-        <span class="panel-kicker">NEW STORY</span><h2>Add a source</h2>
-        <form id="source-form-alt">
-          <div class="source-input-wrap"><span>↗</span><input id="source-url-alt" type="url" placeholder="Paste a YouTube URL..." required><button type="submit">Build Story Workspace</button></div>
-        </form>
+      <div class="create-head">
+        <div>
+          <span class="panel-kicker">CREATE / STORY STUDIO</span>
+          <h2>Create a story</h2>
+          <p>Start with source material, choose the deliverables, then let Headline Avenue build the workspace around the story.</p>
+        </div>
+        <div class="create-status"><span class="status-dot"></span><b>Story Studio ready</b><small>Prototype workflow</small></div>
+      </div>
+
+      <div class="create-layout">
+        <div class="create-main">
+          <article class="create-card source-builder">
+            <div class="create-card-head">
+              <div><span class="step-number">01</span><div><span class="panel-kicker">SOURCE</span><h3>Choose what you're starting with</h3></div></div>
+              <span class="create-hint">One source is enough to start</span>
+            </div>
+
+            <div class="source-type-tabs" role="tablist" aria-label="Source type">
+              <button class="active" type="button" data-source-type="url"><span>↗</span> URL</button>
+              <button type="button" data-source-type="upload"><span>↑</span> Upload</button>
+              <button type="button" data-source-type="article"><span>≡</span> Article</button>
+              <button type="button" data-source-type="audio"><span>◖</span> Audio</button>
+              <button type="button" data-source-type="pdf"><span>▤</span> PDF</button>
+              <button type="button" data-source-type="transcript"><span>“</span> Transcript</button>
+            </div>
+
+            <form id="create-builder-form">
+              <div class="source-pane active" data-source-pane="url">
+                <label class="create-label" for="create-source-url">Source URL</label>
+                <div class="create-url-field"><span>↗</span><input id="create-source-url" type="url" placeholder="Paste a YouTube, podcast, article, or public source URL"><button type="button" id="sample-source">Use sample</button></div>
+                <small>For this prototype, public URLs are accepted. Backend source extraction will be connected later.</small>
+              </div>
+
+              <div class="source-pane" data-source-pane="upload">
+                <label class="upload-zone">
+                  <input id="create-file-upload" type="file" accept="video/*">
+                  <span class="upload-icon">↑</span><b>Drop a video here or choose a file</b><small>MP4, MOV, WebM · processing will be connected to the backend</small>
+                  <em id="upload-file-name">No file selected</em>
+                </label>
+              </div>
+
+              <div class="source-pane" data-source-pane="article">
+                <label class="create-label" for="create-article-url">Article URL</label>
+                <div class="create-url-field"><span>≡</span><input id="create-article-url" type="url" placeholder="Paste a news article, blog post, or press release URL"><button type="button" data-fill-article>Use sample</button></div>
+                <small>Headline Avenue will eventually extract the text, key claims, entities, and source metadata.</small>
+              </div>
+
+              <div class="source-pane" data-source-pane="audio">
+                <label class="upload-zone">
+                  <input id="create-audio-upload" type="file" accept="audio/*">
+                  <span class="upload-icon">◖</span><b>Drop audio here or choose a file</b><small>MP3, WAV, M4A · transcript and speaker detection planned</small>
+                  <em id="audio-file-name">No file selected</em>
+                </label>
+              </div>
+
+              <div class="source-pane" data-source-pane="pdf">
+                <label class="upload-zone">
+                  <input id="create-pdf-upload" type="file" accept=".pdf,application/pdf">
+                  <span class="upload-icon">▤</span><b>Drop a PDF here or choose a file</b><small>Reports, filings, research, press material, and supporting documents</small>
+                  <em id="pdf-file-name">No file selected</em>
+                </label>
+              </div>
+
+              <div class="source-pane" data-source-pane="transcript">
+                <label class="create-label" for="create-transcript">Transcript or source text</label>
+                <textarea id="create-transcript" placeholder="Paste an interview transcript, press statement, notes, or source text here..."></textarea>
+                <div class="text-counter"><span>Source text remains editable before analysis.</span><b id="transcript-count">0 characters</b></div>
+              </div>
+
+              <div class="create-divider"></div>
+
+              <div class="create-card-head compact">
+                <div><span class="step-number">02</span><div><span class="panel-kicker">OUTPUT</span><h3>What should Headline Avenue build?</h3></div></div>
+              </div>
+
+              <div class="build-choice-grid">
+                <button class="build-choice selected" type="button" data-build-choice="storypack"><span class="choice-icon">✦</span><div><b>Full Story Pack</b><small>Best moments + multi-format publishing package</small></div><em>Recommended</em></button>
+                <button class="build-choice" type="button" data-build-choice="video"><span class="choice-icon">▶</span><div><b>Video</b><small>Find moments and prepare flexible video outputs</small></div></button>
+                <button class="build-choice" type="button" data-build-choice="article"><span class="choice-icon">≡</span><div><b>Article</b><small>Headline, summary, structure, and source trail</small></div></button>
+                <button class="build-choice" type="button" data-build-choice="social"><span class="choice-icon">@</span><div><b>Social package</b><small>Carousel, thread, captions, and post copy</small></div></button>
+              </div>
+
+              <div class="create-options-grid">
+                <div class="option-panel">
+                  <div class="option-heading"><span>VIDEO FORMAT</span><small>Choose one or more</small></div>
+                  <div class="format-pills create-format-pills">
+                    <button type="button" class="selected" data-create-format="9:16"><b>9:16</b><small>Vertical</small></button>
+                    <button type="button" data-create-format="16:9"><b>16:9</b><small>Landscape</small></button>
+                    <button type="button" data-create-format="1:1"><b>1:1</b><small>Square</small></button>
+                    <button type="button" data-create-format="4:5"><b>4:5</b><small>Feed</small></button>
+                    <button type="button" data-create-format="original"><b>Original</b><small>Source ratio</small></button>
+                  </div>
+                </div>
+
+                <div class="option-panel">
+                  <div class="option-heading"><span>EDITORIAL MODE</span><small>Tone, not a rewrite of facts</small></div>
+                  <div class="mode-pills">
+                    <button type="button" class="selected" data-editorial-mode="balanced">Balanced</button>
+                    <button type="button" data-editorial-mode="breaking">Breaking</button>
+                    <button type="button" data-editorial-mode="explainer">Explainer</button>
+                    <button type="button" data-editorial-mode="interview">Interview</button>
+                    <button type="button" data-editorial-mode="analysis">Analysis</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="sourceguard-toggle">
+                <div><span class="guard-mini">✓</span><div><b>Run SourceGuard before generation</b><small>Trace claims back to evidence and flag unsupported details.</small></div></div>
+                <label class="switch"><input id="create-sourceguard" type="checkbox" checked><span></span></label>
+              </div>
+
+              <div class="create-submit-row">
+                <div><b id="create-summary">Full Story Pack · 9:16 · Balanced</b><small>SourceGuard enabled</small></div>
+                <button class="primary-action create-submit" type="submit">Build Story Workspace →</button>
+              </div>
+            </form>
+          </article>
+        </div>
+
+        <aside class="create-aside">
+          <article class="create-card">
+            <div class="create-card-head compact"><div><span class="panel-kicker">RECENT SOURCES</span><h3>Continue where you left off</h3></div></div>
+            <div class="recent-source-list">
+              <button type="button" data-recent-url="https://www.youtube.com/watch?v=demo-spiderman"><span class="recent-icon video">▶</span><div><b>Spider-Man cast interview</b><small>YouTube · 47:12 · 6 stories</small></div><em>Use</em></button>
+              <button type="button" data-recent-url="https://example.com/product-keynote"><span class="recent-icon link">↗</span><div><b>AI product keynote</b><small>Web source · 31:08 · 4 stories</small></div><em>Use</em></button>
+              <button type="button" data-recent-url="https://example.com/sports-interview"><span class="recent-icon audio">◖</span><div><b>Post-game interview</b><small>Source · 14:41 · 3 stories</small></div><em>Use</em></button>
+            </div>
+          </article>
+
+          <article class="create-card build-preview">
+            <span class="panel-kicker">WHAT HAPPENS NEXT</span>
+            <div class="build-preview-step"><span>1</span><div><b>Index the source</b><small>Transcript, metadata, timestamps, and structure</small></div></div>
+            <div class="build-preview-step"><span>2</span><div><b>Find story angles</b><small>Moments, claims, context, and signal scores</small></div></div>
+            <div class="build-preview-step"><span>3</span><div><b>Open Story Workspace</b><small>Review evidence before creating outputs</small></div></div>
+            <div class="build-preview-step"><span>4</span><div><b>Generate Story Pack</b><small>Create only the formats you need</small></div></div>
+          </article>
+
+          <article class="create-card sourceguard-note">
+            <div class="sourceguard-note-head"><span>✓</span><b>SourceGuard</b></div>
+            <p>Headline Avenue is designed to preserve the distinction between what a source actually supports and what would merely make a catchy headline.</p>
+          </article>
+        </aside>
       </div>
     </section>
 
