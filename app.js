@@ -43,6 +43,46 @@ document.addEventListener("DOMContentLoaded",()=>{
 
   document.getElementById("source-form")?.addEventListener("submit",e=>{e.preventDefault();analyze(document.getElementById("source-url").value.trim())});
 
+  // Radar / live story intelligence
+  const radarRows=[...document.querySelectorAll(".radar-signal")];
+  const radarTabs=[...document.querySelectorAll("[data-radar-tab]")];
+  const radarSearch=document.getElementById("radar-search-input");
+  const radarVelocity=document.getElementById("radar-velocity-filter");
+  let radarCategory="all";
+
+  const applyRadarFilters=()=>{
+    const q=(radarSearch?.value||"").trim().toLowerCase();
+    const velocity=radarVelocity?.value||"all";
+    radarRows.forEach(row=>{
+      const categoryOk=radarCategory==="all"||row.dataset.radarCategory===radarCategory;
+      const velocityOk=velocity==="all"||row.dataset.radarVelocity===velocity;
+      const hay=(row.dataset.radarTitle+" "+row.dataset.radarSource+" "+row.dataset.radarCategory).toLowerCase();
+      row.hidden=!(categoryOk&&velocityOk&&(!q||hay.includes(q)));
+    });
+    const empty=document.getElementById("radar-empty");
+    if(empty)empty.hidden=radarRows.some(r=>!r.hidden);
+  };
+
+  radarTabs.forEach(tab=>tab.addEventListener("click",()=>{
+    radarTabs.forEach(t=>t.classList.remove("active"));
+    tab.classList.add("active");
+    radarCategory=tab.dataset.radarTab;
+    applyRadarFilters();
+  }));
+  radarSearch?.addEventListener("input",applyRadarFilters);
+  radarVelocity?.addEventListener("change",applyRadarFilters);
+
+  document.getElementById("radar-create-btn")?.addEventListener("click",()=>openView("create"));
+  document.querySelectorAll("[data-radar-watch]").forEach(btn=>btn.addEventListener("click",()=>{
+    const isWatching=btn.textContent==="Watching";
+    btn.textContent=isWatching?"Watch":"Watching";
+    showToast(isWatching?"Signal removed from watchlist":"Signal added to watchlist");
+  }));
+  document.querySelectorAll("[data-radar-watchlist]").forEach(btn=>btn.addEventListener("click",()=>showToast("Watchlist opened in prototype.")));
+  document.getElementById("radar-manage-watchlists")?.addEventListener("click",()=>openView("sources"));
+  document.getElementById("radar-load-more")?.addEventListener("click",()=>showToast("More live signals will load from the backend."));
+  applyRadarFilters();
+
   // Story Studio / Create
   const sourceTypeButtons=[...document.querySelectorAll("[data-source-type]")];
   const sourcePanes=[...document.querySelectorAll("[data-source-pane]")];
