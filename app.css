@@ -208,3 +208,51 @@ button:disabled{opacity:.42;cursor:not-allowed;transform:none!important;filter:n
 @media(max-width:1250px){.radar-command-layout{grid-template-columns:1fr}.radar-command-aside{position:static;grid-template-columns:repeat(3,1fr)}.radar-signal{grid-template-columns:58px minmax(0,1fr) 90px 135px}}
 @media(max-width:900px){.radar-metrics{grid-template-columns:repeat(2,1fr)}.radar-toolbar{align-items:stretch;flex-direction:column}.radar-tabs{overflow-x:auto}.radar-tools{flex-wrap:wrap}.radar-search{flex:1;min-width:220px}.radar-command-aside{grid-template-columns:1fr}.radar-signal-list{overflow-x:auto}.radar-signal{min-width:760px}.premium-source-entry{grid-template-columns:1fr}}
 @media(max-width:600px){.radar-head{align-items:flex-start;flex-direction:column}.radar-head-actions{width:100%}.radar-head-actions .primary-action{margin-left:auto}.radar-metrics{grid-template-columns:1fr 1fr}}
+
+
+/* === FINAL READABILITY + INTERACTION POLISH === */
+@media(min-width:1260px){
+  .app-breadcrumb{font-size:.63rem}
+  .app-user small{font-size:.65rem}
+  .panel-kicker{font-size:.62rem}
+  .story-tabs button,.source-tabs button,.publish-tabs button,.radar-tabs button{font-size:.68rem}
+  .story-tools select,.source-tools select,.radar-tools select,.analytics-controls select{font-size:.64rem}
+  .story-search input,.source-search input,.radar-search input{font-size:.67rem}
+  .desk-metrics small,.source-metrics small,.publish-metrics small,.analytics-metrics small,.radar-metrics small{font-size:.62rem}
+  .story-cell-main b,.source-main b,.publish-job-copy>b,.radar-signal h3{font-size:.72rem}
+  .story-cell-main small,.source-main small,.publish-job-copy>small,.source-cell small,.row-sub,.publish-job-time small,.radar-signal p{font-size:.59rem}
+  .source-cell b{font-size:.69rem}
+  .story-table-head,.source-table-head{font-size:.57rem}
+  .desk-status,.guard-badge,.publish-state,.index-state,.source-type-badge,.queue-badge,.signal-status{font-size:.52rem}
+  .output-count small,.source-story-count small,.source-date small{font-size:.52rem}
+  .insight-card button b,.activity-item b,.watchlist-item b,.queue-item b,.recommendation-list b,.desk-brief-list b{font-size:.63rem}
+  .insight-card button small,.activity-item small,.watchlist-item small,.queue-item small,.recommendation-list small,.desk-brief-list small{font-size:.55rem}
+  .build-choice b{font-size:.72rem}
+  .build-choice small,.source-pane>small,.sourceguard-toggle small,.create-submit-row small,.create-hint{font-size:.58rem}
+  .format-pills button small,.mode-pills button,.source-type-tabs button{font-size:.59rem}
+  .publisher-field,.publisher-field input,.publisher-field textarea,.platform-editor label,.schedule-pills button,.publish-checks b{font-size:.58rem}
+  .top-story-row div b,.format-performance b,.hook-row b,.dna-stack b{font-size:.62rem}
+  .top-story-row div small,.format-performance small,.platform-legend>div,.dna-stack span,.impact-note,.format-footnote,.analytics-note{font-size:.54rem}
+  .radar-watchlist b{font-size:.63rem}.radar-watchlist small{font-size:.55rem}
+  .signal-source b{font-size:.56rem}.signal-source span{font-size:.54rem}
+}
+
+.newsroom-row{position:relative;cursor:pointer;transition:background .16s,box-shadow .16s,transform .16s}
+.newsroom-row:hover{background:rgba(0,183,255,.035)}
+.newsroom-row:focus-visible{outline:2px solid rgba(82,219,255,.55);outline-offset:-2px}
+.newsroom-row.selected{background:linear-gradient(90deg,rgba(0,183,255,.075),rgba(0,183,255,.018));box-shadow:inset 3px 0 0 #49dcff}
+.newsroom-row.selected .story-cell-main b{color:#f4fbff}
+.story-signal{box-shadow:inset 0 0 0 1px rgba(0,183,255,.1);transition:transform .16s,box-shadow .16s}
+.newsroom-row:hover .story-signal,.newsroom-row.selected .story-signal{transform:translateY(-1px);box-shadow:inset 0 0 0 1px rgba(0,183,255,.22),0 5px 14px rgba(0,183,255,.08)}
+.newsroom-row[data-source-kind] .source-cell b::before{display:inline-grid;place-items:center;width:17px;height:17px;margin-right:6px;border-radius:5px;vertical-align:-4px;background:rgba(0,183,255,.055);border:1px solid rgba(0,183,255,.1);color:#6bdcff;font-size:.46rem}
+.newsroom-row[data-source-kind="video"] .source-cell b::before{content:"▶"}
+.newsroom-row[data-source-kind="article"] .source-cell b::before{content:"≡";color:#a8bdcf;background:rgba(255,255,255,.025);border-color:rgba(255,255,255,.07)}
+.row-action{padding:5px 7px;border-radius:7px;transition:background .15s,color .15s}
+.row-action:hover{background:rgba(0,183,255,.06);color:#dff8ff}
+.insight-card button{border-radius:8px;transition:background .15s,transform .15s}
+.insight-card button:hover{background:rgba(0,183,255,.035);transform:translateX(1px)}
+.source-row{cursor:pointer}.source-row.selected{background:linear-gradient(90deg,rgba(0,183,255,.055),rgba(0,183,255,.012));box-shadow:inset 3px 0 0 rgba(73,220,255,.8)}
+.top-story-row:hover,.recommendation-list button:hover,.watchlist-item:hover,.radar-watchlist button:hover{background:rgba(0,183,255,.025)}
+.recommendation-list button.saved{background:rgba(80,229,161,.035)}.recommendation-list button.saved .rec-icon{color:var(--green);background:rgba(80,229,161,.07)}
+.analytics-period button,.source-type-tabs button,.format-pills button,.mode-pills button,.schedule-pills button{transition:background .15s,border-color .15s,color .15s,transform .15s}
+.analytics-period button:hover,.source-type-tabs button:hover,.format-pills button:hover,.mode-pills button:hover,.schedule-pills button:hover{transform:translateY(-1px)}
