@@ -74,6 +74,38 @@ class EvidenceOut(ORMModel):
     created_at: datetime
 
 
+class StoryAngleOut(BaseModel):
+    rank: int
+    score: float
+    title: str
+    claim: str
+    excerpt: str
+    location: str
+    signal: str
+    verification_level: Literal["direct_extract"]
+
+
+class SourceGuardTraceOut(BaseModel):
+    status: Literal["supported", "needs_review"]
+    verification_level: str
+    headline: str | None = None
+    evidence: str | None = None
+    location: str | None = None
+    context: str
+
+
+class StoryAnalysisOut(BaseModel):
+    story_id: str
+    source_id: str
+    source_status: str
+    extraction_method: str | None = None
+    source_title: str | None = None
+    source_characters: int = 0
+    angles: list[StoryAngleOut] = Field(default_factory=list)
+    sourceguard: SourceGuardTraceOut
+    message: str
+
+
 class StoryPackGenerate(BaseModel):
     story_id: str
     formats: list[str] = Field(default_factory=lambda: ["headline", "summary", "platform_copy"])
