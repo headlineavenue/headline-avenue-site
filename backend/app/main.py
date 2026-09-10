@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config import get_settings
 from .database import Base, engine
-from .routers import health, sourceguard, sources, stories, story_packs
+from .routers import editorial, health, sourceguard, sources, stories, story_packs
 
 settings = get_settings()
 
@@ -30,6 +30,7 @@ def create_tables() -> None:
 app.include_router(health.router)
 app.include_router(sources.router, prefix=settings.api_v1_prefix)
 app.include_router(stories.router, prefix=settings.api_v1_prefix)
+app.include_router(editorial.router, prefix=settings.api_v1_prefix)
 app.include_router(story_packs.router, prefix=settings.api_v1_prefix)
 app.include_router(sourceguard.router, prefix=settings.api_v1_prefix)
 
