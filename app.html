@@ -5,8 +5,8 @@
 <meta name="theme-color" content="#02050a">
 <title>Headline Avenue — Product Demo</title>
 <link rel="icon" href="assets/headline-avenue-logo.png" type="image/png">
-<link rel="stylesheet" href="app.css?v=20260909-2335">
-<script defer src="app.js?v=20260909-2335"></script>
+<link rel="stylesheet" href="app.css?v=20260909-2359">
+<script defer src="app.js?v=20260909-2359"></script>
 </head>
 <body>
 <div class="app-shell">
@@ -460,7 +460,164 @@
         </aside>
       </div>
     </section>
-    <section id="view-publish" class="app-view"><div class="workspace-card"><span class="panel-kicker">PUBLISHER</span><h2>Connected publishing</h2><div class="channel-grid"><div><b>YouTube</b><span class="connected">Connected</span></div><div><b>Instagram</b><span class="connected">Connected</span></div><div><b>TikTok</b><span class="pending">Sandbox setup</span></div></div></div></section>
+    <section id="view-publish" class="app-view">
+      <div class="publish-head">
+        <div>
+          <span class="panel-kicker">PUBLISHER / DISTRIBUTION DESK</span>
+          <h2>Publish</h2>
+          <p>Review, schedule, and distribute Story Pack assets across authorized destinations.</p>
+        </div>
+        <button class="primary-action" id="compose-publish-btn">＋ New publish job</button>
+      </div>
+
+      <div class="publish-metrics">
+        <article><span>READY TO PUBLISH</span><strong>9</strong><small>Across 5 stories</small></article>
+        <article><span>SCHEDULED</span><strong class="metric-green">8</strong><small>Next 24 hours</small></article>
+        <article><span>PUBLISHED TODAY</span><strong>14</strong><small>3 destinations</small></article>
+        <article><span>NEEDS ATTENTION</span><strong class="metric-gold">2</strong><small>1 draft · 1 sandbox</small></article>
+      </div>
+
+      <div class="publisher-layout">
+        <div class="publisher-main">
+          <article class="publish-card account-strip">
+            <div class="publish-card-title"><div><span class="panel-kicker">DESTINATIONS</span><h3>Connected accounts</h3></div><button id="manage-destinations">Manage</button></div>
+            <div class="destination-grid">
+              <button class="destination-card active" data-destination="youtube">
+                <span class="destination-icon youtube">▶</span>
+                <div><b>YouTube</b><small>Headline Avenue</small></div>
+                <em class="dest-state connected">● Connected</em>
+              </button>
+              <button class="destination-card active" data-destination="instagram">
+                <span class="destination-icon instagram">◎</span>
+                <div><b>Instagram</b><small>@headlineavenue</small></div>
+                <em class="dest-state connected">● Connected</em>
+              </button>
+              <button class="destination-card" data-destination="tiktok">
+                <span class="destination-icon tiktok">♪</span>
+                <div><b>TikTok</b><small>@headlineavenue</small></div>
+                <em class="dest-state sandbox">Sandbox</em>
+              </button>
+            </div>
+            <div class="prototype-connection-note">Prototype view — live account authorization will be handled by the publishing backend.</div>
+          </article>
+
+          <article class="publish-card">
+            <div class="publish-queue-head">
+              <div><span class="panel-kicker">PUBLISHING QUEUE</span><h3>Distribution jobs</h3></div>
+              <div class="publish-tabs" role="tablist" aria-label="Publishing status">
+                <button class="active" data-publish-tab="draft">Drafts <span>4</span></button>
+                <button data-publish-tab="scheduled">Scheduled <span>8</span></button>
+                <button data-publish-tab="published">Published <span>14</span></button>
+                <button data-publish-tab="attention">Attention <span>2</span></button>
+              </div>
+            </div>
+
+            <div class="publish-list" id="publish-job-list">
+              <article class="publish-job selected" data-publish-status="draft" data-job-title="Tobey & Andrew's suits had one big advantage" data-job-platforms="YouTube, Instagram" data-job-time="Not scheduled">
+                <div class="publish-thumb"><span>HA</span><small>00:47</small></div>
+                <div class="publish-job-copy"><b>Tobey & Andrew's suits had one big advantage</b><small>Spider-Man cast interview · 9:16 video</small><div><span class="queue-badge draft">Draft</span><em>2 destinations</em></div></div>
+                <div class="publish-platform-dots"><span class="platform-dot yt">YT</span><span class="platform-dot ig">IG</span></div>
+                <div class="publish-job-time"><b>Not scheduled</b><small>Edited 18 min ago</small></div>
+                <button class="publish-open" data-publish-open>Review →</button>
+              </article>
+
+              <article class="publish-job" data-publish-status="scheduled" data-job-title="Major sports interview produces a breakout quote" data-job-platforms="YouTube, Instagram, TikTok" data-job-time="Tomorrow · 9:30 AM">
+                <div class="publish-thumb sports"><span>HA</span><small>00:34</small></div>
+                <div class="publish-job-copy"><b>Major sports interview produces a breakout quote</b><small>Post-game interview · Story Pack</small><div><span class="queue-badge scheduled">Scheduled</span><em>3 destinations</em></div></div>
+                <div class="publish-platform-dots"><span class="platform-dot yt">YT</span><span class="platform-dot ig">IG</span><span class="platform-dot tt">TT</span></div>
+                <div class="publish-job-time"><b>Tomorrow · 9:30 AM</b><small>Local workspace time</small></div>
+                <button class="publish-open" data-publish-open>Open →</button>
+              </article>
+
+              <article class="publish-job" data-publish-status="scheduled" data-job-title="AI product announcement — what changed" data-job-platforms="YouTube, Instagram" data-job-time="Tomorrow · 1:00 PM">
+                <div class="publish-thumb tech"><span>HA</span><small>00:51</small></div>
+                <div class="publish-job-copy"><b>AI product announcement — what changed</b><small>Official keynote · Explainer</small><div><span class="queue-badge scheduled">Scheduled</span><em>2 destinations</em></div></div>
+                <div class="publish-platform-dots"><span class="platform-dot yt">YT</span><span class="platform-dot ig">IG</span></div>
+                <div class="publish-job-time"><b>Tomorrow · 1:00 PM</b><small>Local workspace time</small></div>
+                <button class="publish-open" data-publish-open>Open →</button>
+              </article>
+
+              <article class="publish-job" data-publish-status="published" data-job-title="Zendaya explains how MJ would respond" data-job-platforms="YouTube, Instagram" data-job-time="Today · 4:12 PM">
+                <div class="publish-thumb entertainment"><span>HA</span><small>00:29</small></div>
+                <div class="publish-job-copy"><b>Zendaya explains how MJ would respond</b><small>Cast interview · 9:16 video</small><div><span class="queue-badge published">Published</span><em>2 destinations</em></div></div>
+                <div class="publish-platform-dots"><span class="platform-dot yt">YT</span><span class="platform-dot ig">IG</span></div>
+                <div class="publish-job-time"><b>Today · 4:12 PM</b><small>Completed successfully</small></div>
+                <button class="publish-open" data-publish-open>Results →</button>
+              </article>
+
+              <article class="publish-job" data-publish-status="attention" data-job-title="Creator workflow changed overnight" data-job-platforms="TikTok" data-job-time="Blocked">
+                <div class="publish-thumb warning"><span>!</span><small>00:42</small></div>
+                <div class="publish-job-copy"><b>Creator workflow changed overnight</b><small>Product announcement · 9:16 video</small><div><span class="queue-badge attention">Attention</span><em>TikTok sandbox</em></div></div>
+                <div class="publish-platform-dots"><span class="platform-dot tt">TT</span></div>
+                <div class="publish-job-time"><b>Blocked</b><small>Production approval required</small></div>
+                <button class="publish-open" data-publish-open>Resolve →</button>
+              </article>
+            </div>
+
+            <div id="publish-empty" class="publish-empty" hidden>No publishing jobs match this view.</div>
+          </article>
+        </div>
+
+        <aside class="publisher-aside">
+          <article class="publish-card publish-inspector">
+            <div class="publish-card-title"><div><span class="panel-kicker">JOB INSPECTOR</span><h3>Review before sending</h3></div><span class="inspector-state">DRAFT</span></div>
+
+            <div class="publish-preview">
+              <div class="preview-frame">
+                <div class="preview-brand-mark">HA</div>
+                <span class="preview-hook">TOBEY & ANDREW'S SUITS<br><b>HAD ONE BIG ADVANTAGE</b></span>
+                <span class="preview-caption">Tom Holland explains what made the older suits easier to use.</span>
+                <div class="preview-controls"><span>♡</span><span>◯</span><span>↗</span></div>
+              </div>
+              <div class="preview-meta"><span>9:16 · 1080×1920</span><span>00:47</span></div>
+            </div>
+
+            <label class="publisher-field">Title
+              <input id="publish-title-input" value="Tom Holland Reveals What Tobey & Andrew's Spider-Man Suits Did Better">
+            </label>
+            <label class="publisher-field">Caption
+              <textarea id="publish-caption-input">Tom Holland explains why Tobey Maguire and Andrew Garfield had one major advantage when it came to their Spider-Man suits. Source: IMDb</textarea>
+            </label>
+
+            <div class="platform-editor">
+              <span>DESTINATIONS</span>
+              <label><input type="checkbox" data-publish-destination value="YouTube" checked><b>YT</b> YouTube</label>
+              <label><input type="checkbox" data-publish-destination value="Instagram" checked><b>IG</b> Instagram</label>
+              <label><input type="checkbox" data-publish-destination value="TikTok"><b>TT</b> TikTok <em>Sandbox</em></label>
+            </div>
+
+            <div class="schedule-editor">
+              <div class="option-heading"><span>SEND TIME</span><small id="publish-schedule-label">Publish now</small></div>
+              <div class="schedule-pills">
+                <button class="selected" data-schedule-mode="now">Now</button>
+                <button data-schedule-mode="later">Schedule</button>
+                <button data-schedule-mode="draft">Save draft</button>
+              </div>
+              <div class="schedule-datetime" id="schedule-datetime" hidden>
+                <input id="publish-date" type="date">
+                <input id="publish-time" type="time" value="09:30">
+              </div>
+            </div>
+
+            <div class="publish-checks">
+              <div><span class="check-ok">✓</span><div><b>SourceGuard passed</b><small>Headline supported by source context</small></div></div>
+              <div><span class="check-ok">✓</span><div><b>Branding present</b><small>Headline Avenue watermark detected</small></div></div>
+              <div><span class="check-warn">!</span><div><b>TikTok limited to sandbox</b><small>Production Direct Post is not enabled yet</small></div></div>
+            </div>
+
+            <button class="primary-action publisher-submit" id="publisher-submit">Publish to 2 destinations →</button>
+            <button class="publisher-secondary" id="publisher-save-draft">Save changes</button>
+          </article>
+
+          <article class="publish-card today-schedule">
+            <div class="publish-card-title"><div><span class="panel-kicker">TODAY</span><h3>Distribution timeline</h3></div><small>3 items</small></div>
+            <div class="timeline-item done"><span>10:00</span><div><b>Morning story</b><small>YouTube · Instagram</small></div></div>
+            <div class="timeline-item done"><span>16:12</span><div><b>Zendaya / MJ clip</b><small>YouTube · Instagram</small></div></div>
+            <div class="timeline-item next"><span>19:30</span><div><b>Evening publish window</b><small>1 Story Pack ready</small></div></div>
+          </article>
+        </aside>
+      </div>
+    </section>
     <section id="view-analytics" class="app-view"><div class="workspace-card"><span class="panel-kicker">ANALYTICS</span><h2>Learn what travels</h2><p class="muted">Future analytics will connect story, format, platform, and performance so the next Story Pack gets smarter.</p></div></section>
 
     <section id="story-workspace" class="app-view">
