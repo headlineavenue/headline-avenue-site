@@ -39,3 +39,117 @@ footer{padding:38px 0 48px;border-top:1px solid rgba(255,255,255,.08);background
 .audience-section{padding-top:25px}.audience-grid{display:grid;grid-template-columns:.9fr 1.1fr;gap:60px;align-items:center}.audience-list{display:flex;flex-wrap:wrap;gap:8px}.audience-list span{padding:12px 15px;border:1px solid var(--line);border-radius:999px;color:#aebccc;background:rgba(255,255,255,.02);font-size:.8rem}
 @media(max-width:1000px){.saas-hero-grid,.workflow-grid,.guard-grid,.audience-grid{grid-template-columns:1fr}.suite-grid,.pricing-grid{grid-template-columns:repeat(2,1fr)}.output-board{grid-template-columns:1fr}.output-arrow{transform:rotate(90deg)}.output-grid{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:650px){.suite-grid,.pricing-grid,.output-grid{grid-template-columns:1fr}.preview-body{grid-template-columns:1fr}.preview-sidebar{display:none}.preview-main{padding:18px}.preview-moments>div{grid-template-columns:38px 1fr}.preview-moments em{display:none}.guard-grid{padding:24px}.saas-hero{padding-top:60px}}
+
+/* === NEWSROOM WIRE RAIL === */
+.signalbar{display:none!important}
+.newswire{
+  position:relative;
+  z-index:60;
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr);
+  height:34px;
+  overflow:hidden;
+  border-bottom:1px solid rgba(255,255,255,.075);
+  background:#01050a;
+  box-shadow:inset 0 -1px 0 rgba(0,183,255,.025);
+}
+.newswire-label{
+  position:relative;
+  z-index:3;
+  display:flex;
+  align-items:center;
+  gap:7px;
+  min-width:126px;
+  padding:0 14px 0 max(14px,calc((100vw - 1180px)/2));
+  padding-left:max(16px,calc((100vw - 1180px)/2));
+  border-right:1px solid rgba(255,255,255,.10);
+  background:linear-gradient(90deg,#07111d,#050b13);
+  white-space:nowrap;
+}
+.newswire-label .live-dot{
+  width:6px;height:6px;border-radius:50%;
+  background:#55efaa;
+  box-shadow:0 0 10px rgba(85,239,170,.72);
+  animation:wirePulse 1.7s ease-in-out infinite;
+}
+.newswire-label b{
+  color:#e9f6ff;
+  font-size:.61rem;
+  letter-spacing:.14em;
+}
+.newswire-label small{
+  color:#55efaa;
+  font-size:.5rem;
+  letter-spacing:.13em;
+}
+.newswire-window{
+  position:relative;
+  min-width:0;
+  overflow:hidden;
+  -webkit-mask-image:linear-gradient(90deg,transparent 0,#000 24px,#000 calc(100% - 24px),transparent 100%);
+  mask-image:linear-gradient(90deg,transparent 0,#000 24px,#000 calc(100% - 24px),transparent 100%);
+}
+.newswire-track{
+  display:flex;
+  width:max-content;
+  height:100%;
+  will-change:transform;
+  animation:newswireFlow 54s linear infinite;
+  animation-delay:-19s;
+}
+.newswire-group{
+  display:flex;
+  align-items:center;
+  flex-shrink:0;
+  height:100%;
+}
+.newswire-group span{
+  position:relative;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  height:100%;
+  padding:0 27px;
+  white-space:nowrap;
+  color:#78899c;
+  font-size:.57rem;
+  letter-spacing:.09em;
+  text-transform:uppercase;
+}
+.newswire-group span::after{
+  content:"";
+  position:absolute;
+  right:0;
+  width:2px;height:2px;border-radius:50%;
+  background:#34475a;
+}
+.newswire-group b{
+  color:#72ddff;
+  font-size:.58rem;
+  letter-spacing:.13em;
+}
+.newswire-group em{
+  color:#8a99aa;
+  font-style:normal;
+}
+.newswire-group span:last-child b{color:#ffd24a}
+@keyframes newswireFlow{
+  from{transform:translate3d(0,0,0)}
+  to{transform:translate3d(-33.333333%,0,0)}
+}
+@keyframes wirePulse{
+  0%,100%{opacity:.55}
+  50%{opacity:1}
+}
+@media(max-width:700px){
+  .newswire{height:31px;grid-template-columns:91px minmax(0,1fr)}
+  .newswire-label{min-width:91px;padding-left:10px;padding-right:8px;gap:5px}
+  .newswire-label b{font-size:.54rem}
+  .newswire-label small{display:none}
+  .newswire-group span{padding:0 20px;font-size:.52rem}
+  .newswire-group b{font-size:.53rem}
+}
+@media(prefers-reduced-motion:reduce){
+  .newswire-track{animation:none;transform:translateX(-12%)}
+  .newswire-label .live-dot{animation:none}
+}
