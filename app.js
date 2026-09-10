@@ -152,6 +152,83 @@ document.addEventListener("DOMContentLoaded",()=>{
 
   updateCreateSummary();
 
+
+  // Sources / intelligence library
+  const sourceRows=[...document.querySelectorAll("#source-library-list .source-row")];
+  const sourceTabs=[...document.querySelectorAll("[data-source-tab]")];
+  const sourceSearch=document.getElementById("source-search-input");
+  const sourceStatus=document.getElementById("source-status-filter");
+  const sourceSort=document.getElementById("source-sort");
+  let sourceTypeFilter="all";
+
+  const applySourceFilters=()=>{
+    const q=(sourceSearch?.value||"").trim().toLowerCase();
+    const status=sourceStatus?.value||"all";
+    sourceRows.forEach(row=>{
+      const typeOk=sourceTypeFilter==="all"||row.dataset.type===sourceTypeFilter;
+      const statusOk=status==="all"||row.dataset.status===status;
+      const hay=(row.dataset.title+" "+row.dataset.origin+" "+row.dataset.type).toLowerCase();
+      row.hidden=!(typeOk&&statusOk&&(!q||hay.includes(q)));
+    });
+    const visible=sourceRows.filter(r=>!r.hidden);
+    const count=document.getElementById("source-visible-count");
+    if(count)count.textContent=visible.length;
+    const empty=document.getElementById("source-empty-filter");
+    if(empty)empty.hidden=visible.length!==0;
+  };
+
+  sourceTabs.forEach(tab=>tab.addEventListener("click",()=>{
+    sourceTabs.forEach(t=>t.classList.remove("active"));
+    tab.classList.add("active");
+    sourceTypeFilter=tab.dataset.sourceTab;
+    applySourceFilters();
+  }));
+  sourceSearch?.addEventListener("input",applySourceFilters);
+  sourceStatus?.addEventListener("change",applySourceFilters);
+  sourceSort?.addEventListener("change",()=>{
+    const list=document.getElementById("source-library-list");
+    const mode=sourceSort.value;
+    const sorted=[...sourceRows].sort((a,b)=>{
+      if(mode==="stories")return Number(b.dataset.stories)-Number(a.dataset.stories);
+      if(mode==="title")return a.dataset.title.localeCompare(b.dataset.title);
+      return 0;
+    });
+    sorted.forEach(r=>list.appendChild(r));
+    applySourceFilters();
+  });
+
+  document.getElementById("add-source-btn")?.addEventListener("click",()=>openView("create"));
+  document.querySelectorAll("[data-source-create]").forEach(btn=>btn.addEventListener("click",()=>{
+    openView("create");
+    const url=btn.dataset.sourceUrl||"";
+    const input=document.getElementById("create-source-url");
+    sourceTypeButtons.forEach(b=>b.classList.toggle("active",b.dataset.sourceType==="url"));
+    sourcePanes.forEach(p=>p.classList.toggle("active",p.dataset.sourcePane==="url"));
+    createSourceType="url";
+    if(input){input.value=url;input.focus()}
+    showToast("Source loaded into Story Studio");
+  }));
+  document.querySelectorAll("[data-source-open]").forEach(btn=>btn.addEventListener("click",()=>{
+    const row=btn.closest(".source-row");
+    showToast((row?.dataset.title||"Source")+" opened — detail panel coming with backend.");
+  }));
+  document.querySelectorAll("[data-source-reindex]").forEach(btn=>btn.addEventListener("click",()=>{
+    const row=btn.closest(".source-row");
+    const state=row?.querySelector(".index-state");
+    if(state){state.textContent="◌ Queued";state.className="index-state indexing"}
+    btn.textContent="Queued";
+    showToast("Source added to the indexing queue");
+  }));
+  document.querySelectorAll("[data-source-watch-toggle]").forEach(btn=>btn.addEventListener("click",()=>{
+    const paused=btn.textContent==="Resume";
+    btn.textContent=paused?"Pause":"Resume";
+    showToast(paused?"Watchlist resumed":"Watchlist paused");
+  }));
+  document.querySelectorAll("[data-watch-demo]").forEach(btn=>btn.addEventListener("click",()=>showToast("Watchlist details will open here.")));
+  document.getElementById("new-watchlist-btn")?.addEventListener("click",()=>showToast("Watchlist builder is next on the roadmap."));
+  document.getElementById("load-more-sources")?.addEventListener("click",()=>showToast("More sources will load from the backend."));
+  applySourceFilters();
+
   document.querySelectorAll("[data-create-demo]").forEach(b=>b.addEventListener("click",()=>openWorkspace("Story opportunity from Radar","Radar-discovered source")));
   document.getElementById("back-radar")?.addEventListener("click",()=>openView("home"));
   document.getElementById("new-story-btn")?.addEventListener("click",()=>openView("create"));
