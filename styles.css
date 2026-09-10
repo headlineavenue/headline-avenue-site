@@ -134,6 +134,13 @@ footer{padding:38px 0 48px;border-top:1px solid rgba(255,255,255,.08);background
   font-weight:600;
   letter-spacing:.07em;
 }
+.newswire-group em::before{
+  content:"•";
+  color:#52667a;
+  margin-right:8px;
+  font-size:.72em;
+  vertical-align:middle;
+}
 .newswire-group span:last-child b{color:#ffd24a}
 @keyframes newswireFlow{
   from{transform:translate3d(0,0,0)}
