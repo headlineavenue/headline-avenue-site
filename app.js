@@ -8,7 +8,8 @@
     analysis: null,
     selectedAngle: null,
     editorialVariants: null,
-    editorialSelection: null
+    editorialSelection: null,
+    editorialGate: null
   };
 
   const nativeFetch = window.fetch.bind(window);
@@ -38,6 +39,7 @@
           window.HeadlineAvenueRuntime.storyId = data.id;
           window.HeadlineAvenueRuntime.sourceId = data.source_id || window.HeadlineAvenueRuntime.sourceId;
           window.HeadlineAvenueRuntime.editorialSelection = null;
+          window.HeadlineAvenueRuntime.editorialGate = null;
           window.dispatchEvent(new CustomEvent("ha:story-created", { detail: data }));
         }).catch(() => {});
       }
@@ -51,7 +53,7 @@
   let domReady = false;
   document.addEventListener("DOMContentLoaded", () => { domReady = true; }, { once: true });
 
-  const version = "20260910-0730";
+  const version = "20260910-1515";
   Promise.all([
     nativeFetch(`app-core.js?v=${version}`, { cache: "no-store" }).then(r => {
       if (!r.ok) throw new Error("Could not load app-core.js");
@@ -64,11 +66,16 @@
     nativeFetch(`editorial-intelligence.js?v=${version}`, { cache: "no-store" }).then(r => {
       if (!r.ok) throw new Error("Could not load editorial-intelligence.js");
       return r.text();
+    }),
+    nativeFetch(`editorial-gating.js?v=${version}`, { cache: "no-store" }).then(r => {
+      if (!r.ok) throw new Error("Could not load editorial-gating.js");
+      return r.text();
     })
-  ]).then(([core, intelligence, editorial]) => {
+  ]).then(([core, intelligence, editorial, gating]) => {
     (0, eval)(core);
     (0, eval)(intelligence);
     (0, eval)(editorial);
+    (0, eval)(gating);
 
     // app.js is a defer script. Usually the natural DOMContentLoaded event has
     // not fired yet; if network loading took longer, replay it once so all
