@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Literal
+from datetime import datetime, timezone
+from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
@@ -81,6 +82,23 @@ class EditorialSelectionOut(BaseModel):
     selected: EditorialVariantOut
 
 
+class EditorialGateOut(BaseModel):
+    story_id: str
+    status: Literal["headline_required", "ready", "review_required", "approved"]
+    can_publish: bool
+    latest_selection_id: str | None = None
+    headline: str | None = None
+    grounding_score: int | None = None
+    verification_level: str | None = None
+    blockers: list[str] = []
+    approval: dict[str, Any] | None = None
+
+
+class EditorialApproveIn(BaseModel):
+    note: str = Field(min_length=5, max_length=500)
+    approved_by: str = Field(default="editor", min_length=2, max_length=120)
+
+
 def _load_story_and_source(db: Session, story_id: str) -> tuple[Story, Source]:
     story = db.get(Story, story_id)
     if not story:
@@ -112,6 +130,74 @@ def _load_angle(story: Story, source: Source, angle_rank: int) -> tuple[dict, st
         raise HTTPException(status_code=404, detail="Requested story angle was not found")
 
     return angles[angle_rank - 1], text
+
+
+def _latest_editorial_selection(db: Session, story_id: str) -> StoryOutput | None:
+    return (
+        db.query(StoryOutput)
+        .filter(
+            StoryOutput.story_id == story_id,
+            StoryOutput.output_type == "editorial_selection",
+        )
+        .order_by(StoryOutput.created_at.desc(), StoryOutput.id.desc())
+        .first()
+    )
+
+
+def _gate_for_story(db: Session, story: Story) -> EditorialGateOut:
+    selection = _latest_editorial_selection(db, story.id)
+    if not selection:
+        return EditorialGateOut(
+            story_id=story.id,
+            status="headline_required",
+            can_publish=False,
+            blockers=["Choose and save an editorial headline before publishing."],
+        )
+
+    content = selection.content_json or {}
+    reasons = [str(item) for item in (content.get("reasons") or []) if str(item).strip()]
+    approval = content.get("editorial_approval") if isinstance(content.get("editorial_approval"), dict) else None
+
+    if selection.status == "approved" or (approval and approval.get("status") == "approved"):
+        return EditorialGateOut(
+            story_id=story.id,
+            status="approved",
+            can_publish=True,
+            latest_selection_id=selection.id,
+            headline=content.get("headline") or story.title,
+            grounding_score=content.get("grounding_score"),
+            verification_level=content.get("verification_level"),
+            blockers=[],
+            approval=approval,
+        )
+
+    if selection.status == "ready" and content.get("sourceguard_status") == "source_aligned":
+        return EditorialGateOut(
+            story_id=story.id,
+            status="ready",
+            can_publish=True,
+            latest_selection_id=selection.id,
+            headline=content.get("headline") or story.title,
+            grounding_score=content.get("grounding_score"),
+            verification_level=content.get("verification_level"),
+            blockers=[],
+            approval=approval,
+        )
+
+    if not reasons:
+        reasons = ["The selected editorial wording requires SourceGuard review before publishing."]
+
+    return EditorialGateOut(
+        story_id=story.id,
+        status="review_required",
+        can_publish=False,
+        latest_selection_id=selection.id,
+        headline=content.get("headline") or story.title,
+        grounding_score=content.get("grounding_score"),
+        verification_level=content.get("verification_level"),
+        blockers=reasons,
+        approval=approval,
+    )
 
 
 def _persist_selection(
@@ -211,6 +297,56 @@ def check_custom_headline(
         angle_rank=payload.angle_rank,
         selected=EditorialVariantOut.model_validate(checked),
     )
+
+
+@router.get("/{story_id}/editorial/gate", response_model=EditorialGateOut)
+def editorial_publish_gate(
+    story_id: str,
+    db: Session = Depends(get_db),
+) -> EditorialGateOut:
+    story = db.get(Story, story_id)
+    if not story:
+        raise HTTPException(status_code=404, detail="Story not found")
+    return _gate_for_story(db, story)
+
+
+@router.post("/{story_id}/editorial/approve", response_model=EditorialGateOut)
+def approve_editorial_review(
+    story_id: str,
+    payload: EditorialApproveIn,
+    db: Session = Depends(get_db),
+) -> EditorialGateOut:
+    story = db.get(Story, story_id)
+    if not story:
+        raise HTTPException(status_code=404, detail="Story not found")
+
+    selection = _latest_editorial_selection(db, story.id)
+    if not selection:
+        raise HTTPException(status_code=409, detail="No editorial selection exists to approve")
+    if selection.status == "ready":
+        raise HTTPException(status_code=409, detail="This editorial selection is already SourceGuard-ready")
+    if selection.status == "approved":
+        return _gate_for_story(db, story)
+    if selection.status != "needs_review":
+        raise HTTPException(status_code=409, detail="The latest editorial selection is not awaiting review")
+
+    content = dict(selection.content_json or {})
+    content["editorial_approval"] = {
+        "status": "approved",
+        "approved_by": payload.approved_by.strip(),
+        "note": payload.note.strip(),
+        "approved_at": datetime.now(timezone.utc).isoformat(),
+        "sourceguard_status_at_approval": content.get("sourceguard_status"),
+        "grounding_score_at_approval": content.get("grounding_score"),
+    }
+    selection.content_json = content
+    selection.status = "approved"
+    story.status = "editorial_ready"
+
+    db.commit()
+    db.refresh(selection)
+    db.refresh(story)
+    return _gate_for_story(db, story)
 
 
 @router.post("/{story_id}/editorial/select", response_model=EditorialSelectionOut, status_code=201)
