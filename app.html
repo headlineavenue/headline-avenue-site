@@ -56,7 +56,131 @@
     </section>
 
     <section id="view-stories" class="app-view">
-      <div class="workspace-card"><span class="panel-kicker">STORIES</span><h2>Your newsroom</h2><div id="stories-list" class="stories-list"><div class="empty-state">No saved stories yet. Create one from a source.</div></div></div>
+      <div class="newsroom-head">
+        <div>
+          <span class="panel-kicker">NEWSROOM / STORY DESK</span>
+          <h2>Stories</h2>
+          <p>Manage every story from source review through publishing.</p>
+        </div>
+        <button class="primary-action" id="new-story-btn">＋ New story</button>
+      </div>
+
+      <div class="desk-metrics">
+        <article><span>ACTIVE STORIES</span><strong>12</strong><small>3 updated today</small></article>
+        <article><span>NEEDS REVIEW</span><strong class="metric-gold">4</strong><small>SourceGuard or copy</small></article>
+        <article><span>STORY PACKS</span><strong>27</strong><small>Across 8 stories</small></article>
+        <article><span>SCHEDULED</span><strong class="metric-green">8</strong><small>Next 24 hours</small></article>
+      </div>
+
+      <div class="story-desk-toolbar">
+        <div class="story-tabs" role="tablist" aria-label="Story status">
+          <button class="active" data-story-tab="all">All <span>12</span></button>
+          <button data-story-tab="active">Active <span>5</span></button>
+          <button data-story-tab="review">Needs review <span>4</span></button>
+          <button data-story-tab="scheduled">Scheduled <span>3</span></button>
+        </div>
+        <div class="story-tools">
+          <label class="story-search"><span>⌕</span><input id="story-search-input" type="search" placeholder="Search stories or sources"></label>
+          <select id="story-topic-filter" aria-label="Filter by topic">
+            <option value="all">All desks</option>
+            <option value="entertainment">Entertainment</option>
+            <option value="technology">Technology</option>
+            <option value="sports">Sports</option>
+          </select>
+          <select id="story-sort" aria-label="Sort stories">
+            <option value="updated">Recently updated</option>
+            <option value="score">Highest signal</option>
+            <option value="title">A–Z</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="newsroom-layout">
+        <div class="story-table-card">
+          <div class="story-table-head">
+            <span>STORY</span><span>SOURCE</span><span>STATUS</span><span>SOURCEGUARD</span><span>OUTPUTS</span><span>PUBLISH</span><span></span>
+          </div>
+
+          <div id="stories-list" class="story-table">
+            <article class="newsroom-row" data-status="active" data-topic="entertainment" data-score="95" data-title="Tom Holland on why Tobey and Andrew's suits were better" data-source="IMDb interview">
+              <div class="story-cell-main"><span class="story-signal high">95</span><div><b>Tom Holland on why Tobey & Andrew's suits were better</b><small>Updated 18 min ago · Entertainment</small></div></div>
+              <div class="source-cell"><b>IMDb interview</b><small>Video · 47:12</small></div>
+              <div><span class="desk-status active">Active</span></div>
+              <div><span class="guard-badge pass">✓ Supported</span></div>
+              <div class="output-count"><b>7</b><small>assets</small></div>
+              <div><span class="publish-state drafting">Drafting</span></div>
+              <div><button class="row-action" data-open-story data-story-title="Tom Holland on why Tobey & Andrew's suits were better" data-story-source="IMDb interview · 47:12">Open →</button></div>
+            </article>
+
+            <article class="newsroom-row" data-status="review" data-topic="technology" data-score="92" data-title="AI product announcement accelerates across platforms" data-source="Official keynote">
+              <div class="story-cell-main"><span class="story-signal">92</span><div><b>AI product announcement accelerates across platforms</b><small>Updated 43 min ago · Technology</small></div></div>
+              <div class="source-cell"><b>Official keynote</b><small>Video · 31:08</small></div>
+              <div><span class="desk-status review">Needs review</span></div>
+              <div><span class="guard-badge warn">! 1 flag</span></div>
+              <div class="output-count"><b>4</b><small>assets</small></div>
+              <div><span class="publish-state holding">On hold</span></div>
+              <div><button class="row-action" data-open-story data-story-title="AI product announcement accelerates across platforms" data-story-source="Official keynote · 31:08">Review →</button></div>
+            </article>
+
+            <article class="newsroom-row" data-status="scheduled" data-topic="sports" data-score="89" data-title="Major sports interview produces a breakout quote" data-source="Post-game interview">
+              <div class="story-cell-main"><span class="story-signal">89</span><div><b>Major sports interview produces a breakout quote</b><small>Updated 1 hr ago · Sports</small></div></div>
+              <div class="source-cell"><b>Post-game interview</b><small>Video · 14:41</small></div>
+              <div><span class="desk-status scheduled">Scheduled</span></div>
+              <div><span class="guard-badge pass">✓ Supported</span></div>
+              <div class="output-count"><b>9</b><small>assets</small></div>
+              <div><span class="publish-state ready">3 queued</span></div>
+              <div><button class="row-action" data-open-story data-story-title="Major sports interview produces a breakout quote" data-story-source="Post-game interview · 14:41">Open →</button></div>
+            </article>
+
+            <article class="newsroom-row" data-status="review" data-topic="entertainment" data-score="86" data-title="Zendaya explains how MJ would respond to another character" data-source="Cast interview">
+              <div class="story-cell-main"><span class="story-signal">86</span><div><b>Zendaya explains how MJ would respond to another character</b><small>Updated 2 hrs ago · Entertainment</small></div></div>
+              <div class="source-cell"><b>Cast interview</b><small>Video · 22:16</small></div>
+              <div><span class="desk-status review">Needs review</span></div>
+              <div><span class="guard-badge pass">✓ Supported</span></div>
+              <div class="output-count"><b>3</b><small>assets</small></div>
+              <div><span class="publish-state drafting">Drafting</span></div>
+              <div><button class="row-action" data-open-story data-story-title="Zendaya explains how MJ would respond to another character" data-story-source="Cast interview · 22:16">Review →</button></div>
+            </article>
+
+            <article class="newsroom-row" data-status="active" data-topic="technology" data-score="83" data-title="New platform feature changes the creator workflow" data-source="Product blog">
+              <div class="story-cell-main"><span class="story-signal">83</span><div><b>New platform feature changes the creator workflow</b><small>Updated 3 hrs ago · Technology</small></div></div>
+              <div class="source-cell"><b>Product blog</b><small>Article · 6 min</small></div>
+              <div><span class="desk-status active">Active</span></div>
+              <div><span class="guard-badge pass">✓ Supported</span></div>
+              <div class="output-count"><b>5</b><small>assets</small></div>
+              <div><span class="publish-state ready">Ready</span></div>
+              <div><button class="row-action" data-open-story data-story-title="New platform feature changes the creator workflow" data-story-source="Product blog · Article">Open →</button></div>
+            </article>
+          </div>
+
+          <div id="story-empty-filter" class="story-empty-filter" hidden>No stories match these filters.</div>
+          <div class="story-table-footer"><span>Showing <b id="story-visible-count">5</b> prototype stories</span><button id="load-more-stories">Load more</button></div>
+        </div>
+
+        <aside class="desk-insights">
+          <article class="insight-card attention">
+            <div class="insight-head"><span>NEEDS ATTENTION</span><b>4</b></div>
+            <button data-jump-review><span class="attention-icon">!</span><div><b>1 unsupported detail</b><small>AI product announcement</small></div><em>Review</em></button>
+            <button data-jump-review><span class="attention-icon gold">Aa</span><div><b>2 headlines need approval</b><small>Editorial review queue</small></div><em>Review</em></button>
+            <button><span class="attention-icon blue">↗</span><div><b>1 publish destination missing</b><small>Instagram account</small></div><em>Fix</em></button>
+          </article>
+
+          <article class="insight-card">
+            <div class="insight-head"><span>DESK PULSE</span><small>LAST 24H</small></div>
+            <div class="pulse-stat"><span>Stories created</span><b>8</b></div>
+            <div class="pulse-stat"><span>Story Packs generated</span><b>21</b></div>
+            <div class="pulse-stat"><span>SourceGuard pass rate</span><b class="green">91%</b></div>
+            <div class="pulse-stat"><span>Items published</span><b>14</b></div>
+          </article>
+
+          <article class="insight-card">
+            <div class="insight-head"><span>RECENT ACTIVITY</span><small>LIVE DESK</small></div>
+            <div class="activity-item"><span class="activity-dot green"></span><div><b>Story Pack generated</b><small>Spider-Man suit story · 12 min ago</small></div></div>
+            <div class="activity-item"><span class="activity-dot blue"></span><div><b>Source indexed</b><small>Official keynote · 38 min ago</small></div></div>
+            <div class="activity-item"><span class="activity-dot gold"></span><div><b>SourceGuard flag added</b><small>AI announcement · 43 min ago</small></div></div>
+          </article>
+        </aside>
+      </div>
     </section>
 
     <section id="view-sources" class="app-view"><div class="workspace-card"><span class="panel-kicker">SOURCES</span><h2>Source library</h2><p class="muted">Connected source management will live here: video, audio, articles, transcripts, PDFs, RSS feeds, and watchlists.</p></div></section>
