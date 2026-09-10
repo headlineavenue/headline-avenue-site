@@ -5,8 +5,8 @@
 <meta name="theme-color" content="#02050a">
 <title>Headline Avenue — Product Demo</title>
 <link rel="icon" href="assets/headline-avenue-logo.png" type="image/png">
-<link rel="stylesheet" href="app.css?v=20260909-2305">
-<script defer src="app.js?v=20260909-2305"></script>
+<link rel="stylesheet" href="app.css?v=20260909-2335">
+<script defer src="app.js?v=20260909-2335"></script>
 </head>
 <body>
 <div class="app-shell">
@@ -320,7 +320,146 @@
       </div>
     </section>
 
-    <section id="view-sources" class="app-view"><div class="workspace-card"><span class="panel-kicker">SOURCES</span><h2>Source library</h2><p class="muted">Connected source management will live here: video, audio, articles, transcripts, PDFs, RSS feeds, and watchlists.</p></div></section>
+    <section id="view-sources" class="app-view">
+      <div class="sources-head">
+        <div>
+          <span class="panel-kicker">SOURCES / INTELLIGENCE LIBRARY</span>
+          <h2>Source library</h2>
+          <p>Everything Headline Avenue has indexed, watched, or used to build a story.</p>
+        </div>
+        <button class="primary-action" id="add-source-btn">＋ Add source</button>
+      </div>
+
+      <div class="source-metrics">
+        <article><span>INDEXED SOURCES</span><strong>38</strong><small>6 added today</small></article>
+        <article><span>TRANSCRIPT READY</span><strong class="metric-green">31</strong><small>82% of library</small></article>
+        <article><span>WATCHLISTS</span><strong>5</strong><small>18 feeds monitored</small></article>
+        <article><span>NEEDS ATTENTION</span><strong class="metric-gold">3</strong><small>Metadata or indexing</small></article>
+      </div>
+
+      <div class="source-toolbar">
+        <div class="source-tabs" role="tablist" aria-label="Source type">
+          <button class="active" data-source-tab="all">All <span>38</span></button>
+          <button data-source-tab="video">Video <span>19</span></button>
+          <button data-source-tab="article">Articles <span>8</span></button>
+          <button data-source-tab="audio">Audio <span>5</span></button>
+          <button data-source-tab="document">Documents <span>3</span></button>
+          <button data-source-tab="watchlist">Watchlists <span>3</span></button>
+        </div>
+        <div class="source-tools">
+          <label class="source-search"><span>⌕</span><input id="source-search-input" type="search" placeholder="Search titles, origins, or tags"></label>
+          <select id="source-status-filter" aria-label="Filter source status">
+            <option value="all">All states</option>
+            <option value="ready">Ready</option>
+            <option value="indexing">Indexing</option>
+            <option value="attention">Needs attention</option>
+          </select>
+          <select id="source-sort" aria-label="Sort sources">
+            <option value="recent">Recently added</option>
+            <option value="stories">Most stories</option>
+            <option value="title">A–Z</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="sources-layout">
+        <div class="source-table-card">
+          <div class="source-table-head">
+            <span>SOURCE</span><span>TYPE</span><span>INDEX</span><span>STORIES</span><span>SOURCEGUARD</span><span>ADDED</span><span></span>
+          </div>
+
+          <div id="source-library-list" class="source-table">
+            <article class="source-row" data-type="video" data-status="ready" data-stories="6" data-title="Spider-Man cast interview" data-origin="IMDb">
+              <div class="source-main"><span class="source-kind video">▶</span><div><b>Spider-Man cast interview</b><small>IMDb · YouTube source · 47:12</small></div></div>
+              <div><span class="source-type-badge">Video</span></div>
+              <div><span class="index-state ready">✓ Ready</span><small class="row-sub">Transcript + timestamps</small></div>
+              <div class="source-story-count"><b>6</b><small>stories</small></div>
+              <div><span class="guard-badge pass">✓ Ready</span></div>
+              <div class="source-date"><b>Today</b><small>6:18 PM</small></div>
+              <div class="source-actions"><button data-source-open>Open</button><button data-source-create data-source-url="https://www.youtube.com/watch?v=demo-spiderman">Create story →</button></div>
+            </article>
+
+            <article class="source-row" data-type="video" data-status="ready" data-stories="4" data-title="AI product keynote" data-origin="Official channel">
+              <div class="source-main"><span class="source-kind link">↗</span><div><b>AI product keynote</b><small>Official channel · Web source · 31:08</small></div></div>
+              <div><span class="source-type-badge">Video</span></div>
+              <div><span class="index-state ready">✓ Ready</span><small class="row-sub">Transcript + chapters</small></div>
+              <div class="source-story-count"><b>4</b><small>stories</small></div>
+              <div><span class="guard-badge pass">✓ Ready</span></div>
+              <div class="source-date"><b>Today</b><small>5:41 PM</small></div>
+              <div class="source-actions"><button data-source-open>Open</button><button data-source-create data-source-url="https://example.com/product-keynote">Create story →</button></div>
+            </article>
+
+            <article class="source-row" data-type="article" data-status="ready" data-stories="3" data-title="Platform product announcement" data-origin="Product newsroom">
+              <div class="source-main"><span class="source-kind article">≡</span><div><b>Platform product announcement</b><small>Product newsroom · Article · 1,840 words</small></div></div>
+              <div><span class="source-type-badge">Article</span></div>
+              <div><span class="index-state ready">✓ Ready</span><small class="row-sub">Claims + entities extracted</small></div>
+              <div class="source-story-count"><b>3</b><small>stories</small></div>
+              <div><span class="guard-badge pass">✓ Ready</span></div>
+              <div class="source-date"><b>Today</b><small>2:04 PM</small></div>
+              <div class="source-actions"><button data-source-open>Open</button><button data-source-create data-source-url="https://example.com/news/story">Create story →</button></div>
+            </article>
+
+            <article class="source-row" data-type="audio" data-status="indexing" data-stories="0" data-title="Post-game interview" data-origin="Press room audio">
+              <div class="source-main"><span class="source-kind audio">◖</span><div><b>Post-game interview</b><small>Press room audio · 14:41</small></div></div>
+              <div><span class="source-type-badge">Audio</span></div>
+              <div><span class="index-state indexing">◌ Indexing</span><small class="row-sub">Speaker detection running</small></div>
+              <div class="source-story-count"><b>—</b><small>pending</small></div>
+              <div><span class="guard-badge muted">Pending</span></div>
+              <div class="source-date"><b>Today</b><small>1:16 PM</small></div>
+              <div class="source-actions"><button data-source-open>Details</button><button data-source-reindex>Check status</button></div>
+            </article>
+
+            <article class="source-row" data-type="document" data-status="attention" data-stories="2" data-title="Industry research report Q3" data-origin="PDF upload">
+              <div class="source-main"><span class="source-kind document">▤</span><div><b>Industry research report — Q3</b><small>PDF upload · 48 pages</small></div></div>
+              <div><span class="source-type-badge">PDF</span></div>
+              <div><span class="index-state attention">! Review</span><small class="row-sub">1 metadata field missing</small></div>
+              <div class="source-story-count"><b>2</b><small>stories</small></div>
+              <div><span class="guard-badge warn">! Partial</span></div>
+              <div class="source-date"><b>Yesterday</b><small>8:32 PM</small></div>
+              <div class="source-actions"><button data-source-open>Open</button><button data-source-reindex>Re-index</button></div>
+            </article>
+
+            <article class="source-row" data-type="watchlist" data-status="ready" data-stories="7" data-title="Entertainment interview watchlist" data-origin="3 monitored channels">
+              <div class="source-main"><span class="source-kind watch">◎</span><div><b>Entertainment interview watchlist</b><small>3 monitored channels · checks hourly</small></div></div>
+              <div><span class="source-type-badge">Watchlist</span></div>
+              <div><span class="index-state ready">● Live</span><small class="row-sub">Last check 12 min ago</small></div>
+              <div class="source-story-count"><b>7</b><small>found</small></div>
+              <div><span class="guard-badge pass">✓ Enabled</span></div>
+              <div class="source-date"><b>Sep 8</b><small>11:05 AM</small></div>
+              <div class="source-actions"><button data-source-open>Manage</button><button data-source-watch-toggle>Pause</button></div>
+            </article>
+          </div>
+
+          <div id="source-empty-filter" class="source-empty-filter" hidden>No sources match these filters.</div>
+          <div class="source-table-footer"><span>Showing <b id="source-visible-count">6</b> prototype sources</span><button id="load-more-sources">Load more</button></div>
+        </div>
+
+        <aside class="source-insights">
+          <article class="source-insight-card">
+            <div class="source-insight-head"><span>SOURCE HEALTH</span><b>92%</b></div>
+            <div class="health-ring-wrap"><div class="health-ring"><span>92</span><small>healthy</small></div></div>
+            <div class="health-row"><span>Ready to use</span><b>31</b></div>
+            <div class="health-row"><span>Indexing now</span><b class="blue">4</b></div>
+            <div class="health-row"><span>Needs attention</span><b class="gold">3</b></div>
+          </article>
+
+          <article class="source-insight-card">
+            <div class="source-insight-head"><span>WATCHLISTS</span><small>LIVE</small></div>
+            <button class="watchlist-item" data-watch-demo><span class="watch-dot green"></span><div><b>Entertainment interviews</b><small>3 channels · hourly</small></div><em>12m</em></button>
+            <button class="watchlist-item" data-watch-demo><span class="watch-dot blue"></span><div><b>AI product launches</b><small>6 sources · hourly</small></div><em>28m</em></button>
+            <button class="watchlist-item" data-watch-demo><span class="watch-dot gold"></span><div><b>Sports press rooms</b><small>9 feeds · every 2h</small></div><em>1h</em></button>
+            <button class="secondary-source-btn" id="new-watchlist-btn">＋ New watchlist</button>
+          </article>
+
+          <article class="source-insight-card">
+            <div class="source-insight-head"><span>INGESTION QUEUE</span><small>4 ACTIVE</small></div>
+            <div class="queue-item"><span class="queue-progress p74"></span><div><b>Post-game interview</b><small>Transcribing · 74%</small></div></div>
+            <div class="queue-item"><span class="queue-progress p48"></span><div><b>Morning briefing</b><small>Extracting · 48%</small></div></div>
+            <div class="queue-item"><span class="queue-progress p21"></span><div><b>Research PDF</b><small>Indexing · 21%</small></div></div>
+          </article>
+        </aside>
+      </div>
+    </section>
     <section id="view-publish" class="app-view"><div class="workspace-card"><span class="panel-kicker">PUBLISHER</span><h2>Connected publishing</h2><div class="channel-grid"><div><b>YouTube</b><span class="connected">Connected</span></div><div><b>Instagram</b><span class="connected">Connected</span></div><div><b>TikTok</b><span class="pending">Sandbox setup</span></div></div></div></section>
     <section id="view-analytics" class="app-view"><div class="workspace-card"><span class="panel-kicker">ANALYTICS</span><h2>Learn what travels</h2><p class="muted">Future analytics will connect story, format, platform, and performance so the next Story Pack gets smarter.</p></div></section>
 
