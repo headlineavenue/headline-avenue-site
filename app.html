@@ -5,8 +5,8 @@
 <meta name="theme-color" content="#02050a">
 <title>Headline Avenue — Product Demo</title>
 <link rel="icon" href="assets/headline-avenue-logo.png" type="image/png">
-<link rel="stylesheet" href="app.css?v=20260910-0018">
-<script defer src="app.js?v=20260910-0018"></script>
+<link rel="stylesheet" href="app.css?v=20260910-0105">
+<script defer src="app.js?v=20260910-0105"></script>
 </head>
 <body>
 <div class="app-shell">
@@ -20,7 +20,7 @@
       <button data-view="publish">↗ <span>Publish</span></button>
       <button data-view="analytics">⌁ <span>Analytics</span></button>
     </nav>
-    <div class="app-side-bottom"><span class="status-dot"></span> Prototype workspace<br><a href="index.html">← Marketing site</a></div>
+    <div class="app-side-bottom"><span class="status-dot"></span> Demo workspace<br><a href="index.html">← Marketing site</a></div>
   </aside>
 
   <main class="app-main">
@@ -791,19 +791,39 @@
 
     <section id="story-workspace" class="app-view">
       <div class="story-toolbar">
-        <button id="back-radar">← Radar</button>
-        <div><span class="story-status">SOURCE INDEXED ✓</span><button id="save-story">Save story</button></div>
+        <button id="back-radar" class="story-back">← Stories</button>
+        <div>
+          <span class="story-status"><span class="status-dot"></span>SOURCE INDEXED</span>
+          <button id="save-story" class="story-save">Save story</button>
+        </div>
       </div>
 
-      <div class="story-head">
-        <div><span class="panel-kicker">STORY WORKSPACE</span><h2 id="story-title">Story detected from source</h2><p id="story-source-label">YouTube source</p></div>
-        <button class="primary-action" id="generate-pack">Generate Story Pack</button>
+      <div class="story-head polished-story-head">
+        <div>
+          <span class="panel-kicker">STORY WORKSPACE</span>
+          <h2 id="story-title">Story detected from source</h2>
+          <p id="story-source-label">YouTube source</p>
+        </div>
+        <div class="story-head-actions">
+          <button class="story-secondary-action" id="open-source-from-story">Open source</button>
+          <button class="primary-action" id="generate-pack">Generate Story Pack</button>
+        </div>
       </div>
 
-      <div class="story-layout">
+      <div class="story-context-strip">
+        <div><span class="context-icon green">✓</span><p><b>Source indexed</b><small>Transcript and timestamps ready</small></p></div>
+        <div><span class="context-icon green">✓</span><p><b>SourceGuard ready</b><small>Claims can be traced to evidence</small></p></div>
+        <div><span class="context-icon blue">3</span><p><b>Story angles</b><small>Ranked by editorial signal</small></p></div>
+        <div><span class="context-icon blue" id="story-output-count">0</span><p><b>Generated outputs</b><small>Build only what you need</small></p></div>
+      </div>
+
+      <div class="story-layout polished-story-layout">
         <div class="story-left">
-          <article class="workspace-card">
-            <div class="panel-title-row"><div><span class="panel-kicker">KEY MOMENTS</span><h3>Best story angles</h3></div><span>3 detected</span></div>
+          <article class="workspace-card story-panel">
+            <div class="panel-title-row">
+              <div><span class="panel-kicker">KEY MOMENTS</span><h3>Best story angles</h3><p>Choose the source moment that should anchor the story.</p></div>
+              <span>3 detected</span>
+            </div>
             <div class="moment-list">
               <button class="moment active" data-moment="0"><strong>95</strong><span><b>Core interview reveal</b><small>00:08:14–00:08:31</small></span><em>High signal</em></button>
               <button class="moment" data-moment="1"><strong>92</strong><span><b>Second strong story angle</b><small>00:19:32–00:19:54</small></span><em>Rising</em></button>
@@ -811,21 +831,42 @@
             </div>
           </article>
 
-          <article class="workspace-card">
-            <div class="panel-title-row"><div><span class="panel-kicker">SOURCEGUARD</span><h3>Claim trace</h3></div><span class="verified-text">SUPPORTED ✓</span></div>
-            <div class="claim-detail"><div><b>HEADLINE</b><span id="claim-headline">THE SOURCE REVEALS ONE IMPORTANT DETAIL</span></div><div><b>EVIDENCE</b><span>Direct statement in indexed source</span></div><div><b>TIMESTAMP</b><span id="claim-time">08:14–08:31</span></div><div><b>CONTEXT</b><span>Headline preserves the meaning of the selected source moment.</span></div></div>
+          <article class="workspace-card story-panel sourceguard-panel">
+            <div class="panel-title-row">
+              <div><span class="panel-kicker">SOURCEGUARD</span><h3>Claim trace</h3><p>See what the selected headline is actually supported by.</p></div>
+              <span class="verified-text">SUPPORTED ✓</span>
+            </div>
+            <div class="claim-detail">
+              <div><b>HEADLINE</b><span id="claim-headline">THE SOURCE REVEALS ONE IMPORTANT DETAIL</span></div>
+              <div><b>EVIDENCE</b><span>Direct statement in indexed source</span></div>
+              <div><b>TIMESTAMP</b><span id="claim-time">08:14–08:31</span></div>
+              <div><b>CONTEXT</b><span>Headline preserves the meaning of the selected source moment.</span></div>
+            </div>
             <div class="unsupported-box"><b>SourceGuard would flag:</b> invented statistics, unsupported accusations, and context changes that are not evidenced by the source.</div>
           </article>
         </div>
 
         <div class="story-right">
-          <article class="workspace-card">
-            <span class="panel-kicker">CREATE</span><h3>Output formats</h3>
-            <div class="format-grid"><button class="selected">9:16</button><button>16:9</button><button>1:1</button><button>4:5</button><button>Article</button><button>Carousel</button><button>Newsletter</button><button>Thread</button></div>
+          <article class="workspace-card story-panel output-builder-panel">
+            <span class="panel-kicker">CREATE</span>
+            <h3>Output formats</h3>
+            <p class="story-panel-copy">Select the formats this story needs. One source can become several platform-ready assets.</p>
+            <div class="format-grid">
+              <button class="selected">9:16</button><button>16:9</button><button>1:1</button><button>4:5</button>
+              <button>Article</button><button>Carousel</button><button>Newsletter</button><button>Thread</button>
+            </div>
           </article>
-          <article class="workspace-card">
-            <span class="panel-kicker">STORY PACK</span><h3>Generated assets</h3>
+
+          <article class="workspace-card story-panel generated-panel">
+            <div class="panel-title-row">
+              <div><span class="panel-kicker">STORY PACK</span><h3>Generated assets</h3></div>
+              <span id="story-pack-state">Waiting</span>
+            </div>
             <div id="pack-list" class="pack-list"><div class="empty-pack">Choose formats and generate the Story Pack.</div></div>
+            <div class="story-action-stack">
+              <button class="primary-action" id="send-to-publish" disabled>Send to Publish →</button>
+              <small>Review assets before they enter the distribution queue.</small>
+            </div>
           </article>
         </div>
       </div>
