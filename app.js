@@ -529,5 +529,43 @@ document.addEventListener("DOMContentLoaded",()=>{
     apply();
   }
 
+  // Final interaction polish
+  const selectStoryRow=(row)=>{
+    document.querySelectorAll("#stories-list .newsroom-row").forEach(r=>r.classList.toggle("selected",r===row));
+  };
+  document.querySelectorAll("#stories-list .newsroom-row").forEach(row=>{
+    row.addEventListener("click",e=>{
+      if(e.target.closest("button,a,input,select,textarea"))return;
+      selectStoryRow(row);
+    });
+    row.addEventListener("keydown",e=>{
+      if(e.key==="Enter"||e.key===" "){e.preventDefault();selectStoryRow(row)}
+    });
+  });
+
+  document.querySelectorAll("#source-library-list .source-row").forEach(row=>{
+    row.tabIndex=0;
+    row.addEventListener("click",e=>{
+      if(e.target.closest("button,a,input,select,textarea"))return;
+      document.querySelectorAll("#source-library-list .source-row").forEach(r=>r.classList.toggle("selected",r===row));
+    });
+    row.addEventListener("keydown",e=>{
+      if(e.key==="Enter"||e.key===" "){
+        e.preventDefault();
+        document.querySelectorAll("#source-library-list .source-row").forEach(r=>r.classList.toggle("selected",r===row));
+      }
+    });
+  });
+
+  document.querySelectorAll("[data-recommendation]").forEach(btn=>btn.addEventListener("click",()=>{
+    btn.classList.toggle("saved");
+    if(btn.classList.contains("saved")) showToast("Recommendation saved for the next Story Pack.");
+  }));
+
+  document.querySelectorAll(".top-story-row").forEach(row=>row.addEventListener("mouseenter",()=>row.setAttribute("aria-label","Open performance detail for "+(row.dataset.performanceStory||"story"))));
+
+  const firstStory=document.querySelector("#stories-list .newsroom-row");
+  if(firstStory)firstStory.classList.add("selected");
+
   initStoryDesk();
 });
