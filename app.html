@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#02050a">
+<title>Headline Avenue — Product Demo</title>
+<link rel="icon" href="assets/headline-avenue-logo.png" type="image/png">
+<link rel="stylesheet" href="app.css">
+<script defer src="app.js"></script>
+</head>
+<body>
+<div class="app-shell">
+  <aside class="app-sidebar">
+    <a class="app-logo" href="index.html"><img src="assets/headline-avenue-logo.png" alt=""><div><b>HEADLINE AVENUE</b><small>EDITORIAL OS</small></div></a>
+    <nav class="app-nav">
+      <button class="active" data-view="home">◉ <span>Radar</span></button>
+      <button data-view="stories">▣ <span>Stories</span></button>
+      <button data-view="create">＋ <span>Create</span></button>
+      <button data-view="sources">⌁ <span>Sources</span></button>
+      <button data-view="publish">↗ <span>Publish</span></button>
+      <button data-view="analytics">⌁ <span>Analytics</span></button>
+    </nav>
+    <div class="app-side-bottom"><span class="status-dot"></span> Prototype workspace<br><a href="index.html">← Marketing site</a></div>
+  </aside>
+
+  <main class="app-main">
+    <header class="app-top">
+      <div><span class="app-breadcrumb">HEADLINE AVENUE / PRODUCT DEMO</span><h1 id="view-title">Radar</h1></div>
+      <div class="app-user"><span>HA</span><div><b>Headline Avenue</b><small>Creator workspace</small></div></div>
+    </header>
+
+    <section id="view-home" class="app-view active">
+      <div class="demo-banner"><b>Interactive product prototype</b><span>This demo runs entirely in your browser. Source analysis is simulated until the backend is connected.</span></div>
+      <div class="radar-grid">
+        <article class="radar-card hot"><div class="radar-top"><span>EMERGING</span><b>+186%</b></div><h3>Spider-Man casting discussion</h3><p>Interview clips and fan discussion accelerating.</p><div class="radar-foot"><span>Entertainment</span><button class="mini-action" data-create-demo>Create story</button></div></article>
+        <article class="radar-card"><div class="radar-top"><span>RISING</span><b>+72%</b></div><h3>AI product announcement</h3><p>High cross-platform discussion velocity.</p><div class="radar-foot"><span>Technology</span><button class="mini-action" data-create-demo>Create story</button></div></article>
+        <article class="radar-card"><div class="radar-top"><span>RISING</span><b>+51%</b></div><h3>Major sports interview</h3><p>Strong quote-level engagement signals.</p><div class="radar-foot"><span>Sports</span><button class="mini-action" data-create-demo>Create story</button></div></article>
+      </div>
+
+      <div class="workspace-card source-entry">
+        <div><span class="panel-kicker">CREATE FROM SOURCE</span><h2>Paste a source. Build the story.</h2><p>Start with a YouTube link. Later: audio, articles, PDFs, transcripts, RSS, and direct uploads.</p></div>
+        <form id="source-form">
+          <div class="source-input-wrap"><span>↗</span><input id="source-url" type="url" placeholder="https://www.youtube.com/watch?v=..." required><button type="submit">Analyze source</button></div>
+          <small id="source-help">Try any valid YouTube URL to experience the Story Workspace prototype.</small>
+        </form>
+      </div>
+    </section>
+
+    <section id="view-create" class="app-view">
+      <div class="workspace-card">
+        <span class="panel-kicker">NEW STORY</span><h2>Add a source</h2>
+        <form id="source-form-alt">
+          <div class="source-input-wrap"><span>↗</span><input id="source-url-alt" type="url" placeholder="Paste a YouTube URL..." required><button type="submit">Build Story Workspace</button></div>
+        </form>
+      </div>
+    </section>
+
+    <section id="view-stories" class="app-view">
+      <div class="workspace-card"><span class="panel-kicker">STORIES</span><h2>Your newsroom</h2><div id="stories-list" class="stories-list"><div class="empty-state">No saved stories yet. Create one from a source.</div></div></div>
+    </section>
+
+    <section id="view-sources" class="app-view"><div class="workspace-card"><span class="panel-kicker">SOURCES</span><h2>Source library</h2><p class="muted">Connected source management will live here: video, audio, articles, transcripts, PDFs, RSS feeds, and watchlists.</p></div></section>
+    <section id="view-publish" class="app-view"><div class="workspace-card"><span class="panel-kicker">PUBLISHER</span><h2>Connected publishing</h2><div class="channel-grid"><div><b>YouTube</b><span class="connected">Connected</span></div><div><b>Instagram</b><span class="connected">Connected</span></div><div><b>TikTok</b><span class="pending">Sandbox setup</span></div></div></div></section>
+    <section id="view-analytics" class="app-view"><div class="workspace-card"><span class="panel-kicker">ANALYTICS</span><h2>Learn what travels</h2><p class="muted">Future analytics will connect story, format, platform, and performance so the next Story Pack gets smarter.</p></div></section>
+
+    <section id="story-workspace" class="app-view">
+      <div class="story-toolbar">
+        <button id="back-radar">← Radar</button>
+        <div><span class="story-status">SOURCE INDEXED ✓</span><button id="save-story">Save story</button></div>
+      </div>
+
+      <div class="story-head">
+        <div><span class="panel-kicker">STORY WORKSPACE</span><h2 id="story-title">Story detected from source</h2><p id="story-source-label">YouTube source</p></div>
+        <button class="primary-action" id="generate-pack">Generate Story Pack</button>
+      </div>
+
+      <div class="story-layout">
+        <div class="story-left">
+          <article class="workspace-card">
+            <div class="panel-title-row"><div><span class="panel-kicker">KEY MOMENTS</span><h3>Best story angles</h3></div><span>3 detected</span></div>
+            <div class="moment-list">
+              <button class="moment active" data-moment="0"><strong>95</strong><span><b>Core interview reveal</b><small>00:08:14–00:08:31</small></span><em>High signal</em></button>
+              <button class="moment" data-moment="1"><strong>92</strong><span><b>Second strong story angle</b><small>00:19:32–00:19:54</small></span><em>Rising</em></button>
+              <button class="moment" data-moment="2"><strong>89</strong><span><b>Audience-friendly quote</b><small>00:31:07–00:31:26</small></span><em>Strong</em></button>
+            </div>
+          </article>
+
+          <article class="workspace-card">
+            <div class="panel-title-row"><div><span class="panel-kicker">SOURCEGUARD</span><h3>Claim trace</h3></div><span class="verified-text">SUPPORTED ✓</span></div>
+            <div class="claim-detail"><div><b>HEADLINE</b><span id="claim-headline">THE SOURCE REVEALS ONE IMPORTANT DETAIL</span></div><div><b>EVIDENCE</b><span>Direct statement in indexed source</span></div><div><b>TIMESTAMP</b><span id="claim-time">08:14–08:31</span></div><div><b>CONTEXT</b><span>Headline preserves the meaning of the selected source moment.</span></div></div>
+            <div class="unsupported-box"><b>SourceGuard would flag:</b> invented statistics, unsupported accusations, and context changes that are not evidenced by the source.</div>
+          </article>
+        </div>
+
+        <div class="story-right">
+          <article class="workspace-card">
+            <span class="panel-kicker">CREATE</span><h3>Output formats</h3>
+            <div class="format-grid"><button class="selected">9:16</button><button>16:9</button><button>1:1</button><button>4:5</button><button>Article</button><button>Carousel</button><button>Newsletter</button><button>Thread</button></div>
+          </article>
+          <article class="workspace-card">
+            <span class="panel-kicker">STORY PACK</span><h3>Generated assets</h3>
+            <div id="pack-list" class="pack-list"><div class="empty-pack">Choose formats and generate the Story Pack.</div></div>
+          </article>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div id="toast" class="toast" role="status"></div>
+</body></html>
