@@ -5,8 +5,8 @@
 <meta name="theme-color" content="#02050a">
 <title>Headline Avenue — Product Demo</title>
 <link rel="icon" href="assets/headline-avenue-logo.png" type="image/png">
-<link rel="stylesheet" href="app.css?v=20260909-2359">
-<script defer src="app.js?v=20260909-2359"></script>
+<link rel="stylesheet" href="app.css?v=20260910-0018">
+<script defer src="app.js?v=20260910-0018"></script>
 </head>
 <body>
 <div class="app-shell">
@@ -618,7 +618,176 @@
         </aside>
       </div>
     </section>
-    <section id="view-analytics" class="app-view"><div class="workspace-card"><span class="panel-kicker">ANALYTICS</span><h2>Learn what travels</h2><p class="muted">Future analytics will connect story, format, platform, and performance so the next Story Pack gets smarter.</p></div></section>
+    <section id="view-analytics" class="app-view">
+      <div class="analytics-head">
+        <div>
+          <span class="panel-kicker">ANALYTICS / EDITORIAL INTELLIGENCE</span>
+          <h2>Performance intelligence</h2>
+          <p>Understand what traveled, why it worked, and what Headline Avenue recommends next.</p>
+        </div>
+        <div class="analytics-controls">
+          <div class="analytics-period">
+            <button data-analytics-period="7d">7D</button>
+            <button class="active" data-analytics-period="30d">30D</button>
+            <button data-analytics-period="90d">90D</button>
+          </div>
+          <select id="analytics-platform-filter" aria-label="Filter analytics by platform">
+            <option value="all">All platforms</option>
+            <option value="youtube">YouTube</option>
+            <option value="instagram">Instagram</option>
+            <option value="tiktok">TikTok</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="analytics-metrics">
+        <article><span>VIEWS</span><strong id="metric-views">1.84M</strong><small class="metric-up">↑ 24.6%</small></article>
+        <article><span>AVG. WATCH</span><strong id="metric-watch">71%</strong><small class="metric-up">↑ 8.2%</small></article>
+        <article><span>ENGAGEMENT</span><strong id="metric-engagement">8.9%</strong><small class="metric-up">↑ 1.4 pts</small></article>
+        <article><span>STORY PACKS</span><strong id="metric-packs">27</strong><small>8 published stories</small></article>
+      </div>
+
+      <div class="analytics-layout">
+        <div class="analytics-main">
+          <article class="analytics-card performance-card">
+            <div class="analytics-card-head">
+              <div><span class="panel-kicker">PERFORMANCE OVERVIEW</span><h3>Audience response</h3></div>
+              <div class="legend"><span><i class="legend-line primary"></i>Views</span><span><i class="legend-line secondary"></i>Watch rate</span></div>
+            </div>
+            <div class="performance-chart" id="performance-chart">
+              <div class="chart-y"><span>100%</span><span>75%</span><span>50%</span><span>25%</span><span>0</span></div>
+              <div class="chart-plot">
+                <div class="gridline g1"></div><div class="gridline g2"></div><div class="gridline g3"></div><div class="gridline g4"></div>
+                <svg viewBox="0 0 800 260" preserveAspectRatio="none" aria-label="Performance trend">
+                  <defs>
+                    <linearGradient id="areaFill" x1="0" x2="0" y1="0" y2="1">
+                      <stop offset="0%" stop-color="#00b7ff" stop-opacity=".28"/>
+                      <stop offset="100%" stop-color="#00b7ff" stop-opacity="0"/>
+                    </linearGradient>
+                  </defs>
+                  <path class="chart-area" d="M0,214 C70,200 95,172 150,180 S235,146 290,154 S375,118 430,128 S515,93 570,107 S650,66 705,78 S765,49 800,42 L800,260 L0,260 Z"/>
+                  <path class="chart-path views-line" d="M0,214 C70,200 95,172 150,180 S235,146 290,154 S375,118 430,128 S515,93 570,107 S650,66 705,78 S765,49 800,42"/>
+                  <path class="chart-path watch-line" d="M0,176 C65,181 110,165 155,169 S238,151 292,157 S370,140 430,144 S505,126 570,132 S645,117 704,120 S762,103 800,108"/>
+                </svg>
+                <div class="chart-x"><span>Aug 11</span><span>Aug 18</span><span>Aug 25</span><span>Sep 1</span><span>Sep 9</span></div>
+              </div>
+            </div>
+          </article>
+
+          <div class="analytics-split">
+            <article class="analytics-card">
+              <div class="analytics-card-head"><div><span class="panel-kicker">TOP STORIES</span><h3>What traveled</h3></div><button class="analytics-text-btn" id="view-all-performance">View all</button></div>
+              <div class="top-story-list">
+                <button class="top-story-row" data-performance-story="Spider-Man suit advantage">
+                  <span class="rank">01</span><div><b>Spider-Man suit advantage</b><small>Entertainment · 2 platforms</small></div><span class="story-performance"><b>684K</b><small>81% watch</small></span><em class="lift up">+42%</em>
+                </button>
+                <button class="top-story-row" data-performance-story="AI product announcement">
+                  <span class="rank">02</span><div><b>AI product announcement</b><small>Technology · 2 platforms</small></div><span class="story-performance"><b>421K</b><small>74% watch</small></span><em class="lift up">+31%</em>
+                </button>
+                <button class="top-story-row" data-performance-story="Post-game breakout quote">
+                  <span class="rank">03</span><div><b>Post-game breakout quote</b><small>Sports · 3 platforms</small></div><span class="story-performance"><b>318K</b><small>69% watch</small></span><em class="lift up">+18%</em>
+                </button>
+                <button class="top-story-row" data-performance-story="Zendaya on MJ">
+                  <span class="rank">04</span><div><b>Zendaya on MJ</b><small>Entertainment · 2 platforms</small></div><span class="story-performance"><b>263K</b><small>65% watch</small></span><em class="lift down">−4%</em>
+                </button>
+              </div>
+            </article>
+
+            <article class="analytics-card">
+              <div class="analytics-card-head"><div><span class="panel-kicker">FORMAT INTELLIGENCE</span><h3>Which packaging wins</h3></div></div>
+              <div class="format-performance">
+                <div><span><b>9:16 video</b><small>12 published</small></span><div class="bar"><i style="width:88%"></i></div><em>8.8</em></div>
+                <div><span><b>Carousel</b><small>5 published</small></span><div class="bar"><i style="width:73%"></i></div><em>7.3</em></div>
+                <div><span><b>16:9 video</b><small>4 published</small></span><div class="bar"><i style="width:66%"></i></div><em>6.6</em></div>
+                <div><span><b>Article</b><small>3 published</small></span><div class="bar"><i style="width:61%"></i></div><em>6.1</em></div>
+                <div><span><b>Thread</b><small>3 published</small></span><div class="bar"><i style="width:54%"></i></div><em>5.4</em></div>
+              </div>
+              <div class="format-footnote">Score blends reach, retention, engagement, and completion relative to your own baseline.</div>
+            </article>
+          </div>
+
+          <div class="analytics-split">
+            <article class="analytics-card">
+              <div class="analytics-card-head"><div><span class="panel-kicker">HOOK PERFORMANCE</span><h3>Opening language</h3></div></div>
+              <div class="hook-table">
+                <div class="hook-row header"><span>HOOK</span><span>3S HOLD</span><span>WATCH</span><span>LIFT</span></div>
+                <div class="hook-row"><b>“ONE BIG ADVANTAGE”</b><span>91%</span><span>81%</span><em class="lift up">+22%</em></div>
+                <div class="hook-row"><b>“WHAT CHANGED”</b><span>86%</span><span>74%</span><em class="lift up">+14%</em></div>
+                <div class="hook-row"><b>“THE DETAIL PEOPLE MISSED”</b><span>82%</span><span>68%</span><em class="lift up">+7%</em></div>
+                <div class="hook-row"><b>“YOU WON'T BELIEVE...”</b><span>63%</span><span>48%</span><em class="lift down">−18%</em></div>
+              </div>
+            </article>
+
+            <article class="analytics-card">
+              <div class="analytics-card-head"><div><span class="panel-kicker">PLATFORM MIX</span><h3>Where stories travel</h3></div></div>
+              <div class="platform-mix">
+                <div class="platform-donut"><div><strong>1.84M</strong><small>views</small></div></div>
+                <div class="platform-legend">
+                  <div><span class="mix-dot youtube"></span><b>YouTube</b><em>46%</em><small>846K</small></div>
+                  <div><span class="mix-dot instagram"></span><b>Instagram</b><em>38%</em><small>699K</small></div>
+                  <div><span class="mix-dot tiktok"></span><b>TikTok</b><em>16%</em><small>295K</small></div>
+                </div>
+              </div>
+            </article>
+          </div>
+
+          <article class="analytics-card timing-card">
+            <div class="analytics-card-head"><div><span class="panel-kicker">PUBLISHING WINDOWS</span><h3>When your audience responds</h3></div><span class="analytics-note">Prototype pattern · local time</span></div>
+            <div class="heatmap">
+              <div class="heat-row labels"><span></span><b>9 AM</b><b>12 PM</b><b>3 PM</b><b>6 PM</b><b>9 PM</b></div>
+              <div class="heat-row"><span>Mon</span><i data-v="2"></i><i data-v="3"></i><i data-v="2"></i><i data-v="4"></i><i data-v="3"></i></div>
+              <div class="heat-row"><span>Tue</span><i data-v="1"></i><i data-v="3"></i><i data-v="2"></i><i data-v="4"></i><i data-v="4"></i></div>
+              <div class="heat-row"><span>Wed</span><i data-v="1"></i><i data-v="2"></i><i data-v="2"></i><i data-v="3"></i><i data-v="3"></i></div>
+              <div class="heat-row"><span>Thu</span><i data-v="2"></i><i data-v="3"></i><i data-v="3"></i><i data-v="4"></i><i data-v="4"></i></div>
+              <div class="heat-row"><span>Fri</span><i data-v="3"></i><i data-v="4"></i><i data-v="3"></i><i data-v="5"></i><i data-v="5"></i></div>
+              <div class="heat-row"><span>Sat</span><i data-v="2"></i><i data-v="3"></i><i data-v="4"></i><i data-v="5"></i><i data-v="4"></i></div>
+              <div class="heat-row"><span>Sun</span><i data-v="2"></i><i data-v="2"></i><i data-v="3"></i><i data-v="4"></i><i data-v="3"></i></div>
+            </div>
+          </article>
+        </div>
+
+        <aside class="analytics-aside">
+          <article class="analytics-card recommendation-card">
+            <div class="analytics-card-head"><div><span class="panel-kicker">NEXT BEST ACTIONS</span><h3>What to do next</h3></div><span class="ai-badge">HA SIGNAL</span></div>
+            <div class="recommendation-list">
+              <button data-recommendation="hook">
+                <span class="rec-icon">↑</span><div><b>Keep concrete hooks</b><small>Specific comparison hooks are holding viewers 22% better than your baseline.</small></div><em>High confidence</em>
+              </button>
+              <button data-recommendation="format">
+                <span class="rec-icon">9:16</span><div><b>Lead with vertical video</b><small>9:16 is currently your strongest package, especially for interview-driven stories.</small></div><em>High confidence</em>
+              </button>
+              <button data-recommendation="timing">
+                <span class="rec-icon">19</span><div><b>Test Friday evenings</b><small>6–9 PM is outperforming your average publishing window in this prototype dataset.</small></div><em>Test next</em>
+              </button>
+              <button data-recommendation="sourceguard">
+                <span class="rec-icon">✓</span><div><b>Avoid unsupported curiosity bait</b><small>Source-backed hooks are outperforming vague sensational phrasing.</small></div><em>Editorial signal</em>
+              </button>
+            </div>
+          </article>
+
+          <article class="analytics-card">
+            <div class="analytics-card-head"><div><span class="panel-kicker">STORY DNA</span><h3>Winning pattern</h3></div></div>
+            <div class="dna-stack">
+              <div><span>TOPIC</span><b>Entertainment interview</b></div>
+              <div><span>OPENING</span><b>Specific comparison</b></div>
+              <div><span>LENGTH</span><b>34–51 seconds</b></div>
+              <div><span>FORMAT</span><b>9:16 video</b></div>
+              <div><span>TONE</span><b>Direct / contextual</b></div>
+              <div><span>PUBLISH WINDOW</span><b>6–9 PM</b></div>
+            </div>
+          </article>
+
+          <article class="analytics-card">
+            <div class="analytics-card-head"><div><span class="panel-kicker">SOURCEGUARD EFFECT</span><h3>Trust + performance</h3></div></div>
+            <div class="guard-impact">
+              <div><span>Source-backed hooks</span><b>78%</b><small>avg. watch rate</small></div>
+              <div><span>Unsupported / revised</span><b class="gold">55%</b><small>avg. watch rate</small></div>
+            </div>
+            <p class="impact-note">Correlation in this prototype is illustrative; production analytics should distinguish correlation from causal claims.</p>
+          </article>
+        </aside>
+      </div>
+    </section>
 
     <section id="story-workspace" class="app-view">
       <div class="story-toolbar">
