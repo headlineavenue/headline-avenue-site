@@ -79,3 +79,44 @@ Then open:
 ## Development principle
 
 The current product demo must remain visually polished while backend functionality is introduced incrementally. Real data should replace prototype data one workflow at a time rather than rewriting the whole interface at once.
+
+
+## Run the full product locally
+
+The public GitHub Pages app stays in prototype mode. For the first real end-to-end workflow, run both the API and the static frontend locally.
+
+### Terminal 1 — API
+
+```powershell
+cd $HOME\Documents\headline-avenue-site\backend
+.\.venv\Scripts\Activate.ps1
+uvicorn app.main:app --reload
+```
+
+### Terminal 2 — frontend
+
+```powershell
+cd $HOME\Documents\headline-avenue-site
+python -m http.server 5500
+```
+
+Open:
+
+`http://localhost:5500/app.html`
+
+When the app is opened from localhost, Create uses the real API at `http://127.0.0.1:8000`:
+
+```text
+Create
+  → POST Source
+  → POST Story
+  → open Story Workspace
+  → Generate Story Pack
+  → POST persisted Story Outputs
+```
+
+The GitHub Pages version intentionally remains prototype-only so an HTTPS public page never depends on an insecure localhost HTTP request.
+
+### Current limitation
+
+Video/audio/PDF selections create real source records and metadata, but the binary files themselves are not uploaded yet. URL, article, and pasted-transcript records persist normally. Object storage and real media ingestion come next.
