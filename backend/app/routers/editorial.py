@@ -90,8 +90,8 @@ def generate_editorial_variants(
     if not source:
         raise HTTPException(status_code=404, detail="Source not found")
 
-    angle, _ = _load_angle(story, source, payload.angle_rank)
-    variants = build_editorial_variants(angle)
+    angle, source_text = _load_angle(story, source, payload.angle_rank)
+    variants = build_editorial_variants(angle, source_text=source_text)
 
     return EditorialGenerateOut(
         story_id=story.id,
@@ -102,8 +102,9 @@ def generate_editorial_variants(
         location=angle["location"],
         variants=[EditorialVariantOut.model_validate(item) for item in variants],
         message=(
-            f"Generated {len(variants)} source-grounded editorial variants. "
-            "SourceGuard v1 checks lexical grounding; semantic verification remains a later layer."
+            f"Generated {len(variants)} concise source-grounded editorial variants. "
+            "SourceGuard v2 checks the selected evidence plus indexed source context; "
+            "semantic verification remains a later layer."
         ),
     )
 
@@ -122,8 +123,8 @@ def select_editorial_variant(
     if not source:
         raise HTTPException(status_code=404, detail="Source not found")
 
-    angle, _ = _load_angle(story, source, payload.angle_rank)
-    variants = build_editorial_variants(angle)
+    angle, source_text = _load_angle(story, source, payload.angle_rank)
+    variants = build_editorial_variants(angle, source_text=source_text)
     selected = next((item for item in variants if item["mode"] == payload.mode), None)
 
     if not selected:
