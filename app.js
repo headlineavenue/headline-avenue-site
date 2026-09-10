@@ -367,7 +367,7 @@ document.addEventListener("DOMContentLoaded",()=>{
   refreshAnalyticsMetrics();
 
   document.querySelectorAll("[data-create-demo]").forEach(b=>b.addEventListener("click",()=>openWorkspace("Story opportunity from Radar","Radar-discovered source")));
-  document.getElementById("back-radar")?.addEventListener("click",()=>openView("home"));
+  document.getElementById("back-radar")?.addEventListener("click",()=>openView("stories"));
   document.getElementById("new-story-btn")?.addEventListener("click",()=>openView("create"));
 
   document.querySelectorAll("[data-open-story]").forEach(b=>b.addEventListener("click",()=>{
@@ -390,7 +390,23 @@ document.addEventListener("DOMContentLoaded",()=>{
     const selected=[...document.querySelectorAll(".format-grid button.selected")].map(x=>x.textContent);
     const all=[...new Set([...selected,"Headline","Summary","Source trail","Platform copy"])];
     document.getElementById("pack-list").innerHTML=all.map(x=>'<div class="pack-item"><b>'+x+'</b><span>Ready ✓</span></div>').join("");
+    const count=document.getElementById("story-output-count");
+    if(count)count.textContent=all.length;
+    const state=document.getElementById("story-pack-state");
+    if(state){state.textContent="Ready";state.classList.add("verified-text")}
+    const send=document.getElementById("send-to-publish");
+    if(send)send.disabled=false;
     showToast("Story Pack generated");
+  });
+
+  document.getElementById("send-to-publish")?.addEventListener("click",()=>{
+    openView("publish");
+    showToast("Story Pack moved into the publishing desk");
+  });
+
+  document.getElementById("open-source-from-story")?.addEventListener("click",()=>{
+    openView("sources");
+    showToast("Source library opened");
   });
 
   document.getElementById("save-story")?.addEventListener("click",()=>{
