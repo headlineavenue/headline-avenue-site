@@ -42,6 +42,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function resetIntelligence() {
     if (!isLocal) return;
+    activeAnalysis = null;
+    runtime.analysis = null;
+    runtime.selectedAngle = null;
+    runtime.selectedAngleIndex = 0;
     const list = momentList();
     if (list) list.innerHTML = '<div class="empty-pack">Create a source-backed story to run Source Intelligence.</div>';
     if (detectedLabel()) detectedLabel().textContent = "Waiting";
@@ -138,15 +142,28 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!activeAnalysis?.angles?.length) return;
     const angles = activeAnalysis.angles;
     selectedAngleIndex = Math.max(0, Math.min(index, angles.length - 1));
+    const selectedAngle = angles[selectedAngleIndex];
+    runtime.selectedAngleIndex = selectedAngleIndex;
+    runtime.selectedAngle = selectedAngle;
     document.querySelectorAll("#story-workspace .moment-list .moment").forEach((button, i) => {
       button.classList.toggle("active", i === selectedAngleIndex);
     });
-    renderClaimTrace(angles[selectedAngleIndex], activeAnalysis);
+    renderClaimTrace(selectedAngle, activeAnalysis);
+    window.dispatchEvent(new CustomEvent("ha:angle-selected", {
+      detail: {
+        storyId: runtime.storyId || activeAnalysis.story_id,
+        index: selectedAngleIndex,
+        angle: selectedAngle,
+        analysis: activeAnalysis
+      }
+    }));
   }
 
   function renderAnalysis(result) {
     activeAnalysis = result;
     runtime.analysis = result;
+    runtime.storyId = result?.story_id || runtime.storyId;
+    runtime.sourceId = result?.source_id || runtime.sourceId;
     selectedAngleIndex = 0;
     const angles = Array.isArray(result?.angles) ? result.angles : [];
     const list = momentList();
@@ -172,8 +189,11 @@ document.addEventListener("DOMContentLoaded", () => {
     setContext(2, String(angles.length), "Story angles", angles.length ? "Evidence-backed and ranked" : "Manual review recommended");
     setToolbarStatus("SOURCE ANALYZED");
 
-    if (angles.length) renderClaimTrace(angles[0], result);
+    window.dispatchEvent(new CustomEvent("ha:analysis-ready", { detail: result }));
+
+    if (angles.length) selectAngle(0);
     else {
+      runtime.selectedAngle = null;
       const status = guardStatus();
       if (status) {
         status.textContent = "REVIEW NEEDED";
