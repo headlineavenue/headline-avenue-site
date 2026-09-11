@@ -53,7 +53,7 @@
   let domReady = false;
   document.addEventListener("DOMContentLoaded", () => { domReady = true; }, { once: true });
 
-  const version = "20260910-1545";
+  const version = "20260910-1630";
   Promise.all([
     nativeFetch(`app-core.js?v=${version}`, { cache: "no-store" }).then(r => {
       if (!r.ok) throw new Error("Could not load app-core.js");
@@ -74,13 +74,18 @@
     nativeFetch(`editorial-gating.js?v=${version}`, { cache: "no-store" }).then(r => {
       if (!r.ok) throw new Error("Could not load editorial-gating.js");
       return r.text();
+    }),
+    nativeFetch(`editorial-restore.js?v=${version}`, { cache: "no-store" }).then(r => {
+      if (!r.ok) throw new Error("Could not load editorial-restore.js");
+      return r.text();
     })
-  ]).then(([core, persistence, intelligence, editorial, gating]) => {
+  ]).then(([core, persistence, intelligence, editorial, gating, restore]) => {
     (0, eval)(core);
     (0, eval)(persistence);
     (0, eval)(intelligence);
     (0, eval)(editorial);
     (0, eval)(gating);
+    (0, eval)(restore);
 
     // app.js is a defer script. Usually the natural DOMContentLoaded event has
     // not fired yet; if network loading took longer, replay it once so all
