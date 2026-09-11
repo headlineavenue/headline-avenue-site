@@ -98,6 +98,7 @@ document.addEventListener("DOMContentLoaded", () => {
   async function loadTikTokStatus(render = true) {
     try {
       tiktokStatus = await apiJson("/oauth/tiktok/status");
+      if (tiktokStatus?.oauth_origin) BACKEND_ORIGINS.add(tiktokStatus.oauth_origin);
       syncDestinationStrip();
     } catch (error) {
       tiktokStatus = {
@@ -205,8 +206,9 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
+    const startUrl = tiktokStatus.oauth_start_url || `${API_BASE}/oauth/tiktok/start`;
     const popup = window.open(
-      `${API_BASE}/oauth/tiktok/start`,
+      startUrl,
       "ha-tiktok-oauth",
       "popup=yes,width=620,height=760,resizable=yes,scrollbars=yes"
     );
