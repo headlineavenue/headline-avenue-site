@@ -53,10 +53,14 @@
   let domReady = false;
   document.addEventListener("DOMContentLoaded", () => { domReady = true; }, { once: true });
 
-  const version = "20260910-1515";
+  const version = "20260910-1545";
   Promise.all([
     nativeFetch(`app-core.js?v=${version}`, { cache: "no-store" }).then(r => {
       if (!r.ok) throw new Error("Could not load app-core.js");
+      return r.text();
+    }),
+    nativeFetch(`session-persistence.js?v=${version}`, { cache: "no-store" }).then(r => {
+      if (!r.ok) throw new Error("Could not load session-persistence.js");
       return r.text();
     }),
     nativeFetch(`story-intelligence.js?v=${version}`, { cache: "no-store" }).then(r => {
@@ -71,8 +75,9 @@
       if (!r.ok) throw new Error("Could not load editorial-gating.js");
       return r.text();
     })
-  ]).then(([core, intelligence, editorial, gating]) => {
+  ]).then(([core, persistence, intelligence, editorial, gating]) => {
     (0, eval)(core);
+    (0, eval)(persistence);
     (0, eval)(intelligence);
     (0, eval)(editorial);
     (0, eval)(gating);
