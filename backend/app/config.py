@@ -11,6 +11,12 @@ class Settings(BaseSettings):
         "http://localhost:5173,http://localhost:5500,"
         "https://headlineavenue.github.io"
     )
+    frontend_origin: str = "http://localhost:5500"
+
+    tiktok_client_key: str = ""
+    tiktok_client_secret: str = ""
+    tiktok_redirect_uri: str = ""
+    tiktok_scopes: str = "user.info.basic,video.publish"
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
