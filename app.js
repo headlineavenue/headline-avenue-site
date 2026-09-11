@@ -48,6 +48,16 @@
           scrollbar-color: rgba(78, 233, 255, .22) transparent;
         }
 
+        .publisher-aside .publish-inspector > .publish-card-title {
+          position: sticky;
+          top: 0;
+          z-index: 6;
+          padding-bottom: 10px;
+          background: linear-gradient(180deg, rgba(10, 20, 35, .995), rgba(7, 15, 26, .97));
+          border-bottom: 1px solid rgba(255, 255, 255, .055);
+          box-shadow: 0 8px 14px rgba(2, 5, 10, .24);
+        }
+
         .publisher-aside .publish-inspector::-webkit-scrollbar {
           width: 7px;
         }
@@ -117,7 +127,7 @@
   let domReady = false;
   document.addEventListener("DOMContentLoaded", () => { domReady = true; }, { once: true });
 
-  const version = "20260911-0010";
+  const version = "20260911-0020";
   Promise.all([
     nativeFetch(`app-core.js?v=${version}`, { cache: "no-store" }).then(r => {
       if (!r.ok) throw new Error("Could not load app-core.js");
