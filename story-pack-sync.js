@@ -11,6 +11,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const runtime = window.HeadlineAvenueRuntime || (window.HeadlineAvenueRuntime = {});
   const fetcher = window.__haNativeFetch || window.fetch.bind(window);
   const API_BASE = "http://127.0.0.1:8000/api/v1";
+  const WORKSPACE_KEY = "headline-avenue.active-workspace.v1";
+  const PACK_KEY = "headline-avenue.last-story-pack.v1";
 
   function showToast(message) {
     const toast = document.getElementById("toast");
@@ -18,6 +20,15 @@ document.addEventListener("DOMContentLoaded", () => {
     toast.textContent = message;
     toast.classList.add("show");
     window.setTimeout(() => toast.classList.remove("show"), 2200);
+  }
+
+  function readJson(key) {
+    try {
+      const raw = window.sessionStorage.getItem(key);
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
   }
 
   function requestedFormats() {
@@ -47,6 +58,35 @@ document.addEventListener("DOMContentLoaded", () => {
       .replace(/_/g, " ")
       .replace(/^\d+:\d+ video$/i, match => match.replace(" video", ""))
       .replace(/\b\w/g, char => char.toUpperCase());
+  }
+
+  function persistPack(storyId, outputs) {
+    const formats = [...new Set((Array.isArray(outputs) ? outputs : [])
+      .map(output => output?.output_type || output)
+      .map(value => String(value || "").trim())
+      .filter(Boolean))];
+    if (!storyId || !formats.length) return;
+
+    try {
+      window.sessionStorage.setItem(PACK_KEY, JSON.stringify({
+        storyId,
+        formats,
+        savedAt: Date.now()
+      }));
+
+      const workspace = readJson(WORKSPACE_KEY) || {};
+      if (!workspace.storyId || workspace.storyId === storyId) {
+        window.sessionStorage.setItem(WORKSPACE_KEY, JSON.stringify({
+          ...workspace,
+          storyId,
+          outputs: formats,
+          packState: "Ready",
+          savedAt: Date.now()
+        }));
+      }
+    } catch (error) {
+      console.debug("Story Pack session snapshot could not be saved.", error);
+    }
   }
 
   function renderOutputs(outputs) {
@@ -91,6 +131,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const result = await response.json();
       renderOutputs(result.outputs || []);
+      persistPack(storyId, result.outputs || []);
       window.dispatchEvent(new CustomEvent("ha:story-pack-generated", { detail: result }));
       showToast("Story Pack generated and saved to backend");
       return true;
