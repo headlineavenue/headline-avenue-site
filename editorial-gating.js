@@ -86,6 +86,50 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  function syncPublishUi(gate) {
+    const send = document.getElementById("send-to-publish");
+    if (!send) return;
+
+    const status = gate?.status || "headline_required";
+    const canPublish = Boolean(gate?.can_publish);
+    const hasPack = packExists();
+    const shouldBlock = !canPublish || !hasPack;
+
+    send.classList.toggle("ha-publish-blocked", shouldBlock);
+    send.dataset.haGateBlocked = !canPublish ? "1" : "0";
+
+    if (!canPublish) {
+      send.disabled = true;
+      send.textContent = status === "review_required"
+        ? "Publish blocked — review required"
+        : "Choose headline before publish";
+    } else if (!hasPack) {
+      send.disabled = true;
+      send.textContent = "Generate Story Pack first";
+    } else {
+      send.disabled = false;
+      send.classList.remove("ha-publish-blocked");
+      send.dataset.haGateBlocked = "0";
+      send.textContent = "Send to Publish →";
+    }
+
+    const packState = document.getElementById("story-pack-state");
+    if (packState && hasPack) {
+      if (status === "review_required") {
+        packState.textContent = "Review required";
+        packState.classList.remove("verified-text");
+      } else if (status === "approved") {
+        packState.textContent = "Editor approved";
+        packState.classList.add("verified-text");
+      } else if (status === "ready") {
+        packState.textContent = "Ready";
+        packState.classList.add("verified-text");
+      }
+    }
+
+    syncPackLabels(status);
+  }
+
   function renderGate(gate) {
     runtime.editorialGate = gate;
     const box = ensureGateBox();
@@ -93,7 +137,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!box || !send) return;
 
     const status = gate?.status || "headline_required";
-    const canPublish = Boolean(gate?.can_publish);
     const blockers = Array.isArray(gate?.blockers) ? gate.blockers : [];
     const score = Number.isFinite(Number(gate?.grounding_score)) ? Number(gate.grounding_score) : null;
     const approval = gate?.approval || null;
@@ -122,35 +165,7 @@ document.addEventListener("DOMContentLoaded", () => {
       box.innerHTML = `<strong>Choose a headline before publishing</strong>Select a Headline Lab option first. Story Packs can still be built as working drafts.`;
     }
 
-    const shouldBlock = !canPublish;
-    send.classList.toggle("ha-publish-blocked", shouldBlock);
-    send.dataset.haGateBlocked = shouldBlock ? "1" : "0";
-
-    if (shouldBlock) {
-      send.disabled = true;
-      send.textContent = status === "review_required"
-        ? "Publish blocked — review required"
-        : "Choose headline before publish";
-    } else if (packExists()) {
-      send.disabled = false;
-      send.textContent = "Send to Publish →";
-    }
-
-    const packState = document.getElementById("story-pack-state");
-    if (packState && packExists()) {
-      if (status === "review_required") {
-        packState.textContent = "Review required";
-        packState.classList.remove("verified-text");
-      } else if (status === "approved") {
-        packState.textContent = "Editor approved";
-        packState.classList.add("verified-text");
-      } else if (status === "ready") {
-        packState.textContent = "Ready";
-        packState.classList.add("verified-text");
-      }
-    }
-
-    syncPackLabels(status);
+    syncPublishUi(gate);
   }
 
   function escapeHtml(value) {
@@ -176,12 +191,11 @@ document.addEventListener("DOMContentLoaded", () => {
         lastFingerprint = fingerprint;
         renderGate(gate);
       } else {
-        const send = document.getElementById("send-to-publish");
-        if (send && !gate.can_publish) {
-          send.disabled = true;
-          send.classList.add("ha-publish-blocked");
-        }
-        syncPackLabels(gate.status);
+        // The gate payload can stay identical while the Story Pack DOM changes
+        // from Waiting -> Ready. Always resync the publish controls so an
+        // editor-approved story unlocks as soon as generated assets exist.
+        runtime.editorialGate = gate;
+        syncPublishUi(gate);
       }
     } catch (error) {
       console.debug("Editorial gate check skipped:", error);
