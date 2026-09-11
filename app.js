@@ -127,7 +127,7 @@
   let domReady = false;
   document.addEventListener("DOMContentLoaded", () => { domReady = true; }, { once: true });
 
-  const version = "20260911-0020";
+  const version = "20260911-0105";
   Promise.all([
     nativeFetch(`app-core.js?v=${version}`, { cache: "no-store" }).then(r => {
       if (!r.ok) throw new Error("Could not load app-core.js");
@@ -168,8 +168,12 @@
     nativeFetch(`publish-pipeline.js?v=${version}`, { cache: "no-store" }).then(r => {
       if (!r.ok) throw new Error("Could not load publish-pipeline.js");
       return r.text();
+    }),
+    nativeFetch(`publish-accounts.js?v=${version}`, { cache: "no-store" }).then(r => {
+      if (!r.ok) throw new Error("Could not load publish-accounts.js");
+      return r.text();
     })
-  ]).then(([core, persistence, intelligence, editorial, gating, restore, storyPackSync, publishBridge, publishRecovery, publishPipeline]) => {
+  ]).then(([core, persistence, intelligence, editorial, gating, restore, storyPackSync, publishBridge, publishRecovery, publishPipeline, publishAccounts]) => {
     (0, eval)(core);
     (0, eval)(persistence);
     (0, eval)(intelligence);
@@ -180,6 +184,7 @@
     (0, eval)(publishBridge);
     (0, eval)(publishRecovery);
     (0, eval)(publishPipeline);
+    (0, eval)(publishAccounts);
 
     // app.js is a defer script. Usually the natural DOMContentLoaded event has
     // not fired yet; if network loading took longer, replay it once so all
