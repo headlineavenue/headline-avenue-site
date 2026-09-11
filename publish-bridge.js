@@ -216,14 +216,31 @@ document.addEventListener("DOMContentLoaded", () => {
     if (saved) window.setTimeout(() => renderDraft(saved), 0);
   });
 
-  // If Publish was the active view at refresh time, restore the live draft on
-  // top of the prototype desk rather than falling back to unrelated sample data.
+  // If Publish was active before a refresh, restore the exact backend Story
+  // Pack. Older builds did not create DRAFT_KEY yet, so fall back to the saved
+  // storyId and create the draft automatically without making the editor redo
+  // the review/approval workflow.
   const workspaceState = readJson(WORKSPACE_KEY);
   const savedDraft = readJson(DRAFT_KEY);
-  if (savedDraft && workspaceState?.activeView === "publish") {
-    window.setTimeout(() => {
-      openPublishView();
-      renderDraft(savedDraft);
+  if (workspaceState?.activeView === "publish") {
+    window.setTimeout(async () => {
+      try {
+        openPublishView();
+        if (savedDraft) {
+          renderDraft(savedDraft);
+          return;
+        }
+        if (workspaceState.storyId) {
+          runtime.storyId = workspaceState.storyId;
+          runtime.sourceId = workspaceState.sourceId || runtime.sourceId || null;
+          const draft = await createDraftFromStory(workspaceState.storyId);
+          renderDraft(draft);
+          showToast("Publish draft restored from backend");
+        }
+      } catch (error) {
+        console.error("Publish restore failed:", error);
+        showToast("Could not restore the live Publish draft — " + error.message);
+      }
     }, 0);
   }
 });
