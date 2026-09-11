@@ -13,6 +13,59 @@
     publishDraft: null
   };
 
+  // Publish desk UX polish: keep the inspector and distribution timeline in one
+  // contained desktop rail. The rail can scroll independently, so the sticky
+  // inspector can never visually cover the timeline beneath it.
+  if (!document.getElementById("ha-publish-rail-polish")) {
+    const style = document.createElement("style");
+    style.id = "ha-publish-rail-polish";
+    style.textContent = `
+      @media (min-width: 1251px) {
+        .publisher-aside {
+          position: sticky;
+          top: 18px;
+          align-self: start;
+          max-height: calc(100vh - 36px);
+          overflow-y: auto;
+          overscroll-behavior: contain;
+          scrollbar-gutter: stable;
+          scroll-padding-bottom: 12px;
+          padding-right: 4px;
+          scrollbar-width: thin;
+          scrollbar-color: rgba(78, 233, 255, .22) transparent;
+        }
+
+        .publisher-aside .publish-inspector {
+          position: static !important;
+          top: auto !important;
+        }
+
+        .publisher-aside::-webkit-scrollbar {
+          width: 7px;
+        }
+
+        .publisher-aside::-webkit-scrollbar-track {
+          background: transparent;
+        }
+
+        .publisher-aside::-webkit-scrollbar-thumb {
+          background: rgba(78, 233, 255, .18);
+          border-radius: 999px;
+        }
+
+        .publisher-aside::-webkit-scrollbar-thumb:hover {
+          background: rgba(78, 233, 255, .30);
+        }
+
+        .publisher-aside .today-schedule {
+          position: relative;
+          z-index: 1;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
   const nativeFetch = window.fetch.bind(window);
   window.__haNativeFetch = nativeFetch;
 
@@ -55,7 +108,7 @@
   let domReady = false;
   document.addEventListener("DOMContentLoaded", () => { domReady = true; }, { once: true });
 
-  const version = "20260910-2245";
+  const version = "20260910-2345";
   Promise.all([
     nativeFetch(`app-core.js?v=${version}`, { cache: "no-store" }).then(r => {
       if (!r.ok) throw new Error("Could not load app-core.js");
