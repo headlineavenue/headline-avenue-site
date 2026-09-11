@@ -185,7 +185,9 @@ document.addEventListener("DOMContentLoaded", () => {
       // Re-run the normal intelligence stack against the persisted Story. The
       // backend restores the authoritative editorial gate / editor approval.
       window.setTimeout(() => {
-        window.dispatchEvent(new CustomEvent("ha:story-created", { detail: story }));
+        window.dispatchEvent(new CustomEvent("ha:story-created", {
+          detail: { ...story, __haRestored: true }
+        }));
         showRestoredToast();
       }, 0);
       return true;
@@ -205,6 +207,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
     runtime.storyId = storyId;
     runtime.sourceId = story.source_id || runtime.sourceId || null;
+
+    // A restore event exists only to wake the normal analysis/editorial stack.
+    // The saved pack/title state was already restored immediately above, so do
+    // not clear it as though this were a brand-new story.
+    if (story.__haRestored) {
+      scheduleCapture(220);
+      return;
+    }
+
     writeState({
       activeView: "workspace",
       storyId,
