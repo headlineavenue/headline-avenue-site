@@ -13,47 +13,52 @@
     publishDraft: null
   };
 
-  // Publish desk UX polish: keep the inspector and distribution timeline in one
-  // contained desktop rail. The rail can scroll independently, so the sticky
-  // inspector can never visually cover the timeline beneath it.
+  // Publish desk UX polish: the right rail itself stays in normal document flow.
+  // Only the Job Inspector sticks on desktop, and it becomes internally scrollable
+  // when taller than the viewport. The Distribution Timeline remains a normal-flow
+  // sibling beneath it so it cannot become trapped inside a sticky scrolling rail.
   if (!document.getElementById("ha-publish-rail-polish")) {
     const style = document.createElement("style");
     style.id = "ha-publish-rail-polish";
     style.textContent = `
       @media (min-width: 1251px) {
         .publisher-aside {
-          position: sticky;
-          top: 18px;
+          position: relative !important;
+          top: auto !important;
           align-self: start;
+          max-height: none !important;
+          overflow: visible !important;
+          overscroll-behavior: auto;
+          scrollbar-gutter: auto;
+          padding-right: 0;
+        }
+
+        .publisher-aside .publish-inspector {
+          position: sticky !important;
+          top: 18px !important;
+          z-index: 2;
           max-height: calc(100vh - 36px);
           overflow-y: auto;
           overscroll-behavior: contain;
           scrollbar-gutter: stable;
-          scroll-padding-bottom: 12px;
-          padding-right: 4px;
           scrollbar-width: thin;
           scrollbar-color: rgba(78, 233, 255, .22) transparent;
         }
 
-        .publisher-aside .publish-inspector {
-          position: static !important;
-          top: auto !important;
-        }
-
-        .publisher-aside::-webkit-scrollbar {
+        .publisher-aside .publish-inspector::-webkit-scrollbar {
           width: 7px;
         }
 
-        .publisher-aside::-webkit-scrollbar-track {
+        .publisher-aside .publish-inspector::-webkit-scrollbar-track {
           background: transparent;
         }
 
-        .publisher-aside::-webkit-scrollbar-thumb {
+        .publisher-aside .publish-inspector::-webkit-scrollbar-thumb {
           background: rgba(78, 233, 255, .18);
           border-radius: 999px;
         }
 
-        .publisher-aside::-webkit-scrollbar-thumb:hover {
+        .publisher-aside .publish-inspector::-webkit-scrollbar-thumb:hover {
           background: rgba(78, 233, 255, .30);
         }
 
@@ -108,7 +113,7 @@
   let domReady = false;
   document.addEventListener("DOMContentLoaded", () => { domReady = true; }, { once: true });
 
-  const version = "20260910-2345";
+  const version = "20260910-2355";
   Promise.all([
     nativeFetch(`app-core.js?v=${version}`, { cache: "no-store" }).then(r => {
       if (!r.ok) throw new Error("Could not load app-core.js");
