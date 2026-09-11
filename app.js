@@ -13,31 +13,34 @@
     publishDraft: null
   };
 
-  // Publish desk UX polish: the right rail itself stays in normal document flow.
-  // Only the Job Inspector sticks on desktop, and it becomes internally scrollable
-  // when taller than the viewport. The Distribution Timeline remains a normal-flow
-  // sibling beneath it so it cannot become trapped inside a sticky scrolling rail.
+  // Publish desk UX polish: keep the desktop right rail together as one sticky
+  // viewport-height unit. The timeline gets its own fixed grid row beneath the
+  // inspector, while only the inspector body is allowed to scroll internally.
+  // This prevents the timeline from travelling upward behind the sticky card.
   if (!document.getElementById("ha-publish-rail-polish")) {
     const style = document.createElement("style");
     style.id = "ha-publish-rail-polish";
     style.textContent = `
       @media (min-width: 1251px) {
         .publisher-aside {
-          position: relative !important;
-          top: auto !important;
+          position: sticky !important;
+          top: 18px !important;
           align-self: start;
-          max-height: none !important;
+          height: calc(100vh - 36px);
+          max-height: calc(100vh - 36px);
+          min-height: 0;
+          grid-template-rows: minmax(0, 1fr) auto;
+          gap: 10px;
           overflow: visible !important;
-          overscroll-behavior: auto;
-          scrollbar-gutter: auto;
           padding-right: 0;
         }
 
         .publisher-aside .publish-inspector {
-          position: sticky !important;
-          top: 18px !important;
+          position: static !important;
+          top: auto !important;
           z-index: 2;
-          max-height: calc(100vh - 36px);
+          min-height: 0;
+          max-height: none;
           overflow-y: auto;
           overscroll-behavior: contain;
           scrollbar-gutter: stable;
@@ -64,7 +67,8 @@
 
         .publisher-aside .today-schedule {
           position: relative;
-          z-index: 1;
+          z-index: 3;
+          align-self: end;
         }
       }
     `;
@@ -113,7 +117,7 @@
   let domReady = false;
   document.addEventListener("DOMContentLoaded", () => { domReady = true; }, { once: true });
 
-  const version = "20260910-2355";
+  const version = "20260911-0010";
   Promise.all([
     nativeFetch(`app-core.js?v=${version}`, { cache: "no-store" }).then(r => {
       if (!r.ok) throw new Error("Could not load app-core.js");
