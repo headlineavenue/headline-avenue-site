@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import secrets
 from datetime import datetime, timedelta, timezone
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -37,6 +37,22 @@ def _scope_list(value: str | None) -> list[str]:
     return [item.strip() for item in str(value or "").split(",") if item.strip()]
 
 
+def _oauth_origin() -> str | None:
+    if not settings.tiktok_redirect_uri:
+        return None
+    parsed = urlparse(settings.tiktok_redirect_uri)
+    if not parsed.scheme or not parsed.netloc:
+        return None
+    return f"{parsed.scheme}://{parsed.netloc}"
+
+
+def _oauth_start_url() -> str | None:
+    origin = _oauth_origin()
+    if not origin:
+        return None
+    return f"{origin}{settings.api_v1_prefix}/oauth/tiktok/start"
+
+
 def _connection(db: Session) -> PlatformConnection | None:
     return (
         db.query(PlatformConnection)
@@ -62,6 +78,8 @@ def _status_payload(db: Session) -> dict:
         "expires_at": connection.access_expires_at if connection else None,
         "refresh_expires_at": connection.refresh_expires_at if connection else None,
         "redirect_uri": settings.tiktok_redirect_uri or None,
+        "oauth_origin": _oauth_origin(),
+        "oauth_start_url": _oauth_start_url(),
     }
 
 
