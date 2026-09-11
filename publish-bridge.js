@@ -59,6 +59,30 @@ document.addEventListener("DOMContentLoaded", () => {
     return prettyFormat(primary);
   }
 
+  function normalizeSavedFormats(values) {
+    const map = {
+      "9:16": "9:16_video",
+      "9:16 Video": "9:16_video",
+      "16:9": "16:9_video",
+      "16:9 Video": "16:9_video",
+      "1:1": "1:1_video",
+      "1:1 Video": "1:1_video",
+      "4:5": "4:5_video",
+      "4:5 Video": "4:5_video",
+      "Article": "article",
+      "Carousel": "carousel",
+      "Newsletter": "newsletter",
+      "Thread": "thread",
+      "Headline": "headline",
+      "Summary": "summary",
+      "Source Trail": "source_trail",
+      "Platform Copy": "platform_copy"
+    };
+    return [...new Set((Array.isArray(values) ? values : [])
+      .map(value => map[String(value).trim()] || String(value).trim().toLowerCase().replace(/\s+/g, "_"))
+      .filter(Boolean))];
+  }
+
   function inspectorCheck(draft) {
     const first = document.querySelector(".publish-checks > div:first-child");
     if (!first) return;
@@ -154,17 +178,61 @@ document.addEventListener("DOMContentLoaded", () => {
     if (draftTab) draftTab.click();
   }
 
-  async function createDraftFromStory(storyId) {
-    const response = await fetcher(`${API_BASE}/publishing/drafts/from-story/${encodeURIComponent(storyId)}`, {
-      method: "POST",
-      headers: { "Accept": "application/json", "Content-Type": "application/json" }
-    });
+  async function apiJson(url, options = {}) {
+    const response = await fetcher(url, options);
     if (!response.ok) {
       let detail = "";
       try { detail = (await response.json())?.detail || ""; } catch {}
-      throw new Error(detail || `API ${response.status}`);
+      const error = new Error(detail || `API ${response.status}`);
+      error.status = response.status;
+      throw error;
     }
     return response.json();
+  }
+
+  async function createDraftFromStory(storyId) {
+    return apiJson(`${API_BASE}/publishing/drafts/from-story/${encodeURIComponent(storyId)}`, {
+      method: "POST",
+      headers: { "Accept": "application/json", "Content-Type": "application/json" }
+    });
+  }
+
+  async function getLatestDraft(storyId) {
+    return apiJson(`${API_BASE}/publishing/drafts/${encodeURIComponent(storyId)}`, {
+      headers: { "Accept": "application/json" }
+    });
+  }
+
+  async function generateSavedPack(storyId, workspaceState) {
+    const formats = normalizeSavedFormats(workspaceState?.outputs);
+    if (!formats.length) throw new Error("Generate a Story Pack before moving to Publish");
+
+    return apiJson(`${API_BASE}/story-packs/generate`, {
+      method: "POST",
+      headers: { "Accept": "application/json", "Content-Type": "application/json" },
+      body: JSON.stringify({ story_id: storyId, formats })
+    });
+  }
+
+  async function recoverOrCreateDraft(storyId, workspaceState) {
+    // Prefer an existing backend draft if browser session storage was lost.
+    try {
+      return await getLatestDraft(storyId);
+    } catch (error) {
+      if (error.status !== 404) console.debug("Existing publish draft lookup skipped:", error);
+    }
+
+    try {
+      return await createDraftFromStory(storyId);
+    } catch (error) {
+      // Older restored workspaces could display a Story Pack that app-core had
+      // regenerated only in the DOM because its private currentStoryId was lost
+      // on refresh. Recreate those exact saved formats in the backend once,
+      // then retry the publish handoff.
+      if (!String(error.message || "").includes("Generate a Story Pack")) throw error;
+      await generateSavedPack(storyId, workspaceState);
+      return createDraftFromStory(storyId);
+    }
   }
 
   async function handoffToPublish(button) {
@@ -179,7 +247,7 @@ document.addEventListener("DOMContentLoaded", () => {
     button.textContent = "Moving to Publish…";
 
     try {
-      const draft = await createDraftFromStory(storyId);
+      const draft = await recoverOrCreateDraft(storyId, readJson(WORKSPACE_KEY));
       saveDraft(draft);
       openPublishView();
       window.requestAnimationFrame(() => renderDraft(draft));
@@ -217,9 +285,8 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // If Publish was active before a refresh, restore the exact backend Story
-  // Pack. Older builds did not create DRAFT_KEY yet, so fall back to the saved
-  // storyId and create the draft automatically without making the editor redo
-  // the review/approval workflow.
+  // Pack. If an older refresh left the pack only in the UI, the recovery path
+  // persists those saved formats first and then creates the live draft.
   const workspaceState = readJson(WORKSPACE_KEY);
   const savedDraft = readJson(DRAFT_KEY);
   if (workspaceState?.activeView === "publish") {
@@ -233,7 +300,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (workspaceState.storyId) {
           runtime.storyId = workspaceState.storyId;
           runtime.sourceId = workspaceState.sourceId || runtime.sourceId || null;
-          const draft = await createDraftFromStory(workspaceState.storyId);
+          const draft = await recoverOrCreateDraft(workspaceState.storyId, workspaceState);
           renderDraft(draft);
           showToast("Publish draft restored from backend");
         }
