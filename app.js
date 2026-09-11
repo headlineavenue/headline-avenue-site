@@ -55,7 +55,7 @@
   let domReady = false;
   document.addEventListener("DOMContentLoaded", () => { domReady = true; }, { once: true });
 
-  const version = "20260910-1715";
+  const version = "20260910-2125";
   Promise.all([
     nativeFetch(`app-core.js?v=${version}`, { cache: "no-store" }).then(r => {
       if (!r.ok) throw new Error("Could not load app-core.js");
@@ -81,17 +81,22 @@
       if (!r.ok) throw new Error("Could not load editorial-restore.js");
       return r.text();
     }),
+    nativeFetch(`story-pack-sync.js?v=${version}`, { cache: "no-store" }).then(r => {
+      if (!r.ok) throw new Error("Could not load story-pack-sync.js");
+      return r.text();
+    }),
     nativeFetch(`publish-bridge.js?v=${version}`, { cache: "no-store" }).then(r => {
       if (!r.ok) throw new Error("Could not load publish-bridge.js");
       return r.text();
     })
-  ]).then(([core, persistence, intelligence, editorial, gating, restore, publishBridge]) => {
+  ]).then(([core, persistence, intelligence, editorial, gating, restore, storyPackSync, publishBridge]) => {
     (0, eval)(core);
     (0, eval)(persistence);
     (0, eval)(intelligence);
     (0, eval)(editorial);
     (0, eval)(gating);
     (0, eval)(restore);
+    (0, eval)(storyPackSync);
     (0, eval)(publishBridge);
 
     // app.js is a defer script. Usually the natural DOMContentLoaded event has
