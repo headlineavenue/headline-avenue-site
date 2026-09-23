@@ -1,0 +1,21 @@
+# Local secrets
+backend/.env
+.env
+.env.*
+
+# Python
+__pycache__/
+*.py[cod]
+backend/.venv/
+.venv/
+
+# Local database / runtime artifacts
+backend/*.db
+backend/*.sqlite
+backend/*.sqlite3
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
