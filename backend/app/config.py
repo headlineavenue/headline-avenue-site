@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     tiktok_client_key: str = ""
     tiktok_client_secret: str = ""
     tiktok_redirect_uri: str = ""
-    tiktok_scopes: str = "user.info.basic,video.publish"
+    tiktok_scopes: str = "user.info.basic"
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
