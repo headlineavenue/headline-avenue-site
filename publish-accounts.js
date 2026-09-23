@@ -41,7 +41,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return {
         id: "tiktok", name: "TikTok", badge: "TT", state: "Checking backend", tone: "sandbox",
         account: "Sandbox authorization", detail: "Checking Headline Avenue's TikTok authorization service…",
-        permissions: "user.info.basic · video.publish", action: "Checking…", disabled: true
+        permissions: "user.info.basic", action: "Checking…", disabled: true
       };
     }
 
@@ -49,7 +49,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return {
         id: "tiktok", name: "TikTok", badge: "TT", state: "Setup required", tone: "sandbox",
         account: "Sandbox not configured", detail: "The OAuth route is installed, but the backend still needs your TikTok Client Key, Client Secret, and registered Redirect URI.",
-        permissions: "user.info.basic · video.publish", action: "Setup required", disabled: false
+        permissions: "user.info.basic", action: "Setup required", disabled: false
       };
     }
 
@@ -59,16 +59,16 @@ document.addEventListener("DOMContentLoaded", () => {
         id: "tiktok", name: "TikTok", badge: "TT", state: tiktokStatus.can_publish ? "Authorized sandbox" : "Connected",
         tone: "connected", account: tiktokStatus.display_name || "TikTok account",
         detail: tiktokStatus.can_publish
-          ? "Login Kit authorization is stored server-side and video.publish is granted. Delivery remains sandbox-gated until the posting adapter is enabled."
-          : "TikTok is connected, but video.publish was not granted. Re-authorize after the scope is enabled for the app.",
+          ? "Login Kit authorization is stored server-side and video.publish is granted. Delivery remains gated until the posting adapter is enabled."
+          : "Login Kit authorization is active. Content Posting is intentionally a separate integration step after the login flow is proven.",
         permissions: scopes, action: "Disconnect", disabled: false
       };
     }
 
     return {
       id: "tiktok", name: "TikTok", badge: "TT", state: "Sandbox ready", tone: "sandbox",
-      account: "No account authorized", detail: "Backend OAuth is configured. Authorize your TikTok sandbox account to store a refreshable user token securely on the server.",
-      permissions: "user.info.basic · video.publish", action: "Connect TikTok", disabled: false
+      account: "No account authorized", detail: "Backend OAuth is configured. Authorize your TikTok sandbox account with Login Kit first; Content Posting will be enabled as a separate reviewed layer.",
+      permissions: "user.info.basic", action: "Connect TikTok", disabled: false
     };
   }
 
