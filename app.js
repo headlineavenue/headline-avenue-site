@@ -13,6 +13,21 @@
     publishDraft: null
   };
 
+  // One API configuration for both local development and the live site.
+  // Local PowerShell runs keep using the local FastAPI server; every hosted
+  // frontend uses the permanent Railway backend.
+  const localHosts = new Set(["localhost", "127.0.0.1"]);
+  const isLocalFrontend = localHosts.has(window.location.hostname);
+  const apiOrigin = isLocalFrontend
+    ? "http://127.0.0.1:8000"
+    : "https://headline-avenue-site-production.up.railway.app";
+  window.HeadlineAvenueConfig = Object.freeze({
+    apiOrigin,
+    apiBase: `${apiOrigin}/api/v1`,
+    isLocal: isLocalFrontend,
+    frontendOrigin: window.location.origin
+  });
+
   // Publish desk UX polish: keep the desktop right rail together as one sticky
   // viewport-height unit. The timeline gets its own fixed grid row beneath the
   // inspector, while only the inspector body is allowed to scroll internally.
