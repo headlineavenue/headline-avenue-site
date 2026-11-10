@@ -3,10 +3,7 @@
 // the wording is revised to SourceGuard-ready or explicitly editor-approved.
 document.addEventListener("DOMContentLoaded", () => {
   const runtime = window.HeadlineAvenueRuntime || (window.HeadlineAvenueRuntime = {});
-  const localHosts = new Set(["localhost", "127.0.0.1"]);
-  const API_BASE = localHosts.has(window.location.hostname)
-    ? "http://127.0.0.1:8000/api/v1"
-    : "";
+  const API_BASE = window.HeadlineAvenueConfig?.apiBase || "http://127.0.0.1:8000/api/v1";
   const fetcher = window.__haNativeFetch || window.fetch.bind(window);
 
   let lastFingerprint = "";
