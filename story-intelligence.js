@@ -2,9 +2,7 @@
 // Uses the v2 backend analysis as evidence-first editorial intelligence.
 document.addEventListener("DOMContentLoaded", () => {
   const runtime = window.HeadlineAvenueRuntime || (window.HeadlineAvenueRuntime = {});
-  const localHosts = new Set(["localhost", "127.0.0.1"]);
-  const isLocal = localHosts.has(window.location.hostname);
-  const API_BASE = isLocal ? "http://127.0.0.1:8000/api/v1" : "";
+  const API_BASE = window.HeadlineAvenueConfig?.apiBase || "http://127.0.0.1:8000/api/v1";
   let activeAnalysis = null;
   let selectedAngleIndex = 0;
   let lastAnalyzedStoryId = null;
