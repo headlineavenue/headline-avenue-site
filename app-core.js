@@ -9,15 +9,13 @@ document.addEventListener("DOMContentLoaded",()=>{
   let currentSourceId=null;
   let currentStoryId=null;
 
-  // Real API mode is intentionally enabled only when the static UI is served
-  // locally. The public GitHub Pages demo stays prototype-only because an
-  // HTTPS page should not make mixed-content requests to a localhost HTTP API.
-  const localHosts=new Set(["localhost","127.0.0.1"]);
-  const API_ORIGIN=localHosts.has(window.location.hostname)?"http://127.0.0.1:8000":"";
-  const API_BASE=API_ORIGIN?API_ORIGIN+"/api/v1":"";
+  // Use the local backend during development and the permanent Railway API
+  // when Headline Avenue is served from GitHub Pages or another hosted origin.
+  const API_ORIGIN=window.HeadlineAvenueConfig?.apiOrigin||"http://127.0.0.1:8000";
+  const API_BASE=window.HeadlineAvenueConfig?.apiBase||(API_ORIGIN+"/api/v1");
 
   async function apiRequest(path,options={}){
-    if(!API_BASE)throw new Error("Real API mode requires the local frontend.");
+    if(!API_BASE)throw new Error("Headline Avenue API is not configured.");
     const response=await fetch(API_BASE+path,{
       headers:{"Content-Type":"application/json",...(options.headers||{})},
       ...options
