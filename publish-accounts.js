@@ -5,8 +5,9 @@ document.addEventListener("DOMContentLoaded", () => {
   if (!manageButton) return;
 
   const fetcher = window.__haNativeFetch || window.fetch.bind(window);
-  const API_BASE = "http://127.0.0.1:8000/api/v1";
-  const BACKEND_ORIGINS = new Set(["http://127.0.0.1:8000", "http://localhost:8000"]);
+  const API_BASE = window.HeadlineAvenueConfig?.apiBase || "http://127.0.0.1:8000/api/v1";
+  const API_ORIGIN = window.HeadlineAvenueConfig?.apiOrigin || "http://127.0.0.1:8000";
+  const BACKEND_ORIGINS = new Set([API_ORIGIN, "http://127.0.0.1:8000", "http://localhost:8000"]);
   let tiktokStatus = null;
 
   injectStyles();
