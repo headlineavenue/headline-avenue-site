@@ -3,9 +3,7 @@
 // and re-runs SourceGuard while the user edits before anything is persisted.
 document.addEventListener("DOMContentLoaded", () => {
   const runtime = window.HeadlineAvenueRuntime || (window.HeadlineAvenueRuntime = {});
-  const localHosts = new Set(["localhost", "127.0.0.1"]);
-  const isLocal = localHosts.has(window.location.hostname);
-  const API_BASE = isLocal ? "http://127.0.0.1:8000/api/v1" : "";
+  const API_BASE = window.HeadlineAvenueConfig?.apiBase || "http://127.0.0.1:8000/api/v1";
   const fetcher = window.__haNativeFetch || window.fetch.bind(window);
 
   const cache = new Map();
