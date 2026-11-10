@@ -2,12 +2,9 @@
 // Creates a backend-backed publish draft from the exact active Story Pack and
 // overlays that live draft onto the existing distribution-desk prototype UI.
 document.addEventListener("DOMContentLoaded", () => {
-  const localHosts = new Set(["localhost", "127.0.0.1"]);
-  if (!localHosts.has(window.location.hostname)) return;
-
   const runtime = window.HeadlineAvenueRuntime || (window.HeadlineAvenueRuntime = {});
   const fetcher = window.__haNativeFetch || window.fetch.bind(window);
-  const API_BASE = "http://127.0.0.1:8000/api/v1";
+  const API_BASE = window.HeadlineAvenueConfig?.apiBase || "http://127.0.0.1:8000/api/v1";
   const DRAFT_KEY = "headline-avenue.publish-draft.v1";
   const WORKSPACE_KEY = "headline-avenue.active-workspace.v1";
 
