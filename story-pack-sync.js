@@ -5,12 +5,9 @@
 // generation continue to hit the backend instead of silently falling back to
 // prototype-only DOM rows.
 document.addEventListener("DOMContentLoaded", () => {
-  const localHosts = new Set(["localhost", "127.0.0.1"]);
-  if (!localHosts.has(window.location.hostname)) return;
-
   const runtime = window.HeadlineAvenueRuntime || (window.HeadlineAvenueRuntime = {});
   const fetcher = window.__haNativeFetch || window.fetch.bind(window);
-  const API_BASE = "http://127.0.0.1:8000/api/v1";
+  const API_BASE = window.HeadlineAvenueConfig?.apiBase || "http://127.0.0.1:8000/api/v1";
   const WORKSPACE_KEY = "headline-avenue.active-workspace.v1";
   const PACK_KEY = "headline-avenue.last-story-pack.v1";
 
