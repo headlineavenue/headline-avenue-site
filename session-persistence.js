@@ -2,12 +2,9 @@
 // Keeps the active local Story Workspace alive across F5 / hard refreshes while
 // using the backend as the source of truth for the Story, source, analysis and gate.
 document.addEventListener("DOMContentLoaded", () => {
-  const localHosts = new Set(["localhost", "127.0.0.1"]);
-  if (!localHosts.has(window.location.hostname)) return;
-
   const runtime = window.HeadlineAvenueRuntime || (window.HeadlineAvenueRuntime = {});
   const fetcher = window.__haNativeFetch || window.fetch.bind(window);
-  const API_BASE = "http://127.0.0.1:8000/api/v1";
+  const API_BASE = window.HeadlineAvenueConfig?.apiBase || "http://127.0.0.1:8000/api/v1";
   const SESSION_KEY = "headline-avenue.active-workspace.v1";
   const bootState = readState();
   let restoring = false;
