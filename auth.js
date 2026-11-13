@@ -145,7 +145,7 @@
       applySession(verified);
       document.getElementById("ha-auth-gate")?.remove();
     } catch (err) {
-      error.textContent = err.status === 401
+      error.textContent = err.status === 401 && mode === "login"
         ? "Email or password is incorrect."
         : err.message;
       button.disabled = false;
