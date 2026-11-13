@@ -54,6 +54,32 @@ class StoryOut(ORMModel):
     status: str
     created_at: datetime
 
+class StoryDeskItemOut(BaseModel):
+    id: str
+    source_id: str
+    title: str
+    angle: str | None = None
+    signal_score: float | None = None
+    story_status: str
+    created_at: datetime
+    source_title: str | None = None
+    source_kind: str
+    source_status: str
+    output_count: int = 0
+    sourceguard_status: str = "pending"
+    publish_status: str = "drafting"
+    scheduled_count: int = 0
+
+
+class StoryDeskOut(BaseModel):
+    stories: list[StoryDeskItemOut]
+    total: int
+    active: int
+    needs_review: int
+    scheduled: int
+    story_packs: int
+
+
 
 class EvidenceCreate(BaseModel):
     claim: str
