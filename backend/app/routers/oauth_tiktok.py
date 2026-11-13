@@ -11,8 +11,17 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 
 from ..config import get_settings
+from ..crypto import decrypt_secret, encrypt_secret
 from ..database import get_db
-from ..models import PlatformConnection
+from ..models import AuditLog, PlatformConnection
+from ..security import (
+    AuthContext,
+    WorkspaceContext,
+    get_auth_context,
+    get_workspace_context,
+    require_csrf,
+    require_workspace,
+)
 
 
 router = APIRouter(prefix="/oauth/tiktok", tags=["oauth", "tiktok"])
@@ -30,6 +39,7 @@ def _configured() -> bool:
         settings.tiktok_client_key.strip()
         and settings.tiktok_client_secret.strip()
         and settings.tiktok_redirect_uri.strip()
+        and settings.token_encryption_key.strip()
     )
 
 
@@ -46,27 +56,34 @@ def _oauth_origin() -> str | None:
     return f"{parsed.scheme}://{parsed.netloc}"
 
 
-def _oauth_start_url() -> str | None:
+def _oauth_start_url(workspace_id: str) -> str | None:
     origin = _oauth_origin()
     if not origin:
         return None
-    return f"{origin}{settings.api_v1_prefix}/oauth/tiktok/start"
+    return (
+        f"{origin}{settings.api_v1_prefix}/oauth/tiktok/start"
+        f"?{urlencode({'workspace_id': workspace_id})}"
+    )
 
 
-def _connection(db: Session) -> PlatformConnection | None:
+def _connection(db: Session, workspace_id: str) -> PlatformConnection | None:
     return (
         db.query(PlatformConnection)
-        .filter(PlatformConnection.provider == "tiktok")
+        .filter(
+            PlatformConnection.workspace_id == workspace_id,
+            PlatformConnection.provider == "tiktok",
+        )
         .first()
     )
 
 
-def _status_payload(db: Session) -> dict:
-    connection = _connection(db)
+def _status_payload(db: Session, workspace_id: str) -> dict:
+    connection = _connection(db, workspace_id)
     scopes = _scope_list(connection.scope if connection else "")
     connected = bool(connection and connection.status == "connected" and connection.access_token)
     return {
         "provider": "tiktok",
+        "workspace_id": workspace_id,
         "configured": _configured(),
         "connected": connected,
         "status": connection.status if connection else "not_connected",
@@ -79,7 +96,7 @@ def _status_payload(db: Session) -> dict:
         "refresh_expires_at": connection.refresh_expires_at if connection else None,
         "redirect_uri": settings.tiktok_redirect_uri or None,
         "oauth_origin": _oauth_origin(),
-        "oauth_start_url": _oauth_start_url(),
+        "oauth_start_url": _oauth_start_url(workspace_id),
     }
 
 
@@ -109,19 +126,30 @@ setTimeout(() => window.close(), 450);
 
 
 @router.get("/status")
-def tiktok_status(db: Session = Depends(get_db)) -> dict:
-    return _status_payload(db)
+def tiktok_status(
+    workspace: WorkspaceContext = Depends(get_workspace_context),
+    db: Session = Depends(get_db),
+) -> dict:
+    return _status_payload(db, workspace.workspace.id)
 
 
 @router.get("/start")
-def tiktok_start() -> RedirectResponse:
+def tiktok_start(
+    workspace_id: str,
+    auth: AuthContext = Depends(get_auth_context),
+    db: Session = Depends(get_db),
+) -> RedirectResponse:
     if not _configured():
         raise HTTPException(
             status_code=503,
-            detail="TikTok OAuth is not configured on the backend. Set TIKTOK_CLIENT_KEY, TIKTOK_CLIENT_SECRET, and TIKTOK_REDIRECT_URI.",
+            detail=(
+                "TikTok OAuth is not configured on the backend. Set the TikTok "
+                "credentials, Redirect URI, and TOKEN_ENCRYPTION_KEY."
+            ),
         )
 
-    state = secrets.token_urlsafe(32)
+    require_workspace(workspace_id, auth, db)
+    state = f"{secrets.token_urlsafe(32)}:{workspace_id}"
     params = {
         "client_key": settings.tiktok_client_key,
         "scope": settings.tiktok_scopes,
@@ -148,6 +176,7 @@ async def tiktok_callback(
     state: str | None = None,
     error: str | None = None,
     error_description: str | None = None,
+    auth: AuthContext = Depends(get_auth_context),
     db: Session = Depends(get_db),
 ) -> HTMLResponse:
     stored_state = request.cookies.get(STATE_COOKIE)
@@ -157,12 +186,27 @@ async def tiktok_callback(
         return response
 
     if not code or not state or not stored_state or not secrets.compare_digest(state, stored_state):
-        response = _callback_page("error", "The TikTok authorization state could not be verified. Please try again.")
+        response = _callback_page(
+            "error",
+            "The TikTok authorization state could not be verified. Please try again.",
+        )
         response.delete_cookie(STATE_COOKIE)
         return response
 
+    try:
+        _, workspace_id = state.rsplit(":", 1)
+    except ValueError:
+        response = _callback_page("error", "TikTok authorization workspace could not be verified.")
+        response.delete_cookie(STATE_COOKIE)
+        return response
+
+    workspace, _membership = require_workspace(workspace_id, auth, db)
+
     if not _configured():
-        response = _callback_page("error", "TikTok OAuth configuration is incomplete on the Headline Avenue backend.")
+        response = _callback_page(
+            "error",
+            "TikTok OAuth configuration is incomplete on the Headline Avenue backend.",
+        )
         response.delete_cookie(STATE_COOKIE)
         return response
 
@@ -177,11 +221,18 @@ async def tiktok_callback(
                     "grant_type": "authorization_code",
                     "redirect_uri": settings.tiktok_redirect_uri,
                 },
-                headers={"Content-Type": "application/x-www-form-urlencoded", "Cache-Control": "no-cache"},
+                headers={
+                    "Content-Type": "application/x-www-form-urlencoded",
+                    "Cache-Control": "no-cache",
+                },
             )
             token_data = token_response.json()
             if token_response.is_error or not token_data.get("access_token"):
-                detail = token_data.get("error_description") or token_data.get("error") or "TikTok token exchange failed"
+                detail = (
+                    token_data.get("error_description")
+                    or token_data.get("error")
+                    or "TikTok token exchange failed"
+                )
                 response = _callback_page("error", str(detail))
                 response.delete_cookie(STATE_COOKIE)
                 return response
@@ -200,14 +251,17 @@ async def tiktok_callback(
                     profile = dict((body.get("data") or {}).get("user") or {})
 
         now = datetime.now(timezone.utc)
-        connection = _connection(db) or PlatformConnection(provider="tiktok")
+        connection = _connection(db, workspace.id) or PlatformConnection(
+            workspace_id=workspace.id,
+            provider="tiktok",
+        )
         connection.status = "connected"
         connection.account_id = str(token_data.get("open_id") or profile.get("open_id") or "") or None
         connection.display_name = str(profile.get("display_name") or "") or None
         connection.avatar_url = str(profile.get("avatar_url") or "") or None
         connection.scope = granted_scope
-        connection.access_token = access_token
-        connection.refresh_token = str(token_data.get("refresh_token") or "") or None
+        connection.access_token = encrypt_secret(access_token)
+        connection.refresh_token = encrypt_secret(str(token_data.get("refresh_token") or "") or None)
         connection.access_expires_at = now + timedelta(seconds=int(token_data.get("expires_in") or 0))
         connection.refresh_expires_at = now + timedelta(seconds=int(token_data.get("refresh_expires_in") or 0))
         connection.metadata_json = {
@@ -216,12 +270,23 @@ async def tiktok_callback(
         }
         connection.updated_at = now
         db.add(connection)
+        db.flush()
+        db.add(
+            AuditLog(
+                workspace_id=workspace.id,
+                user_id=auth.user.id,
+                action="provider.tiktok.connected",
+                entity_type="platform_connection",
+                entity_id=connection.id,
+                details_json={"scopes": _scope_list(granted_scope)},
+            )
+        )
         db.commit()
         db.refresh(connection)
 
         response = _callback_page(
             "connected",
-            "TikTok authorized successfully. Headline Avenue stored the authorization on the backend.",
+            "TikTok authorized successfully. Headline Avenue stored the authorization securely on the backend.",
             {
                 "display_name": connection.display_name,
                 "avatar_url": connection.avatar_url,
@@ -230,18 +295,24 @@ async def tiktok_callback(
         )
         response.delete_cookie(STATE_COOKIE)
         return response
-    except httpx.HTTPError as exc:
-        response = _callback_page("error", f"TikTok could not be reached: {exc}")
+    except (httpx.HTTPError, RuntimeError) as exc:
+        response = _callback_page("error", f"TikTok authorization could not complete: {exc}")
         response.delete_cookie(STATE_COOKIE)
         return response
 
 
 @router.post("/refresh")
-async def tiktok_refresh(db: Session = Depends(get_db)) -> dict:
+async def tiktok_refresh(
+    request: Request,
+    workspace: WorkspaceContext = Depends(get_workspace_context),
+    db: Session = Depends(get_db),
+) -> dict:
+    require_csrf(request, workspace.auth.session)
     if not _configured():
         raise HTTPException(status_code=503, detail="TikTok OAuth is not configured")
-    connection = _connection(db)
-    if not connection or not connection.refresh_token:
+    connection = _connection(db, workspace.workspace.id)
+    refresh_token = decrypt_secret(connection.refresh_token) if connection else None
+    if not connection or not refresh_token:
         raise HTTPException(status_code=409, detail="TikTok is not connected")
 
     async with httpx.AsyncClient(timeout=20.0) as client:
@@ -251,45 +322,75 @@ async def tiktok_refresh(db: Session = Depends(get_db)) -> dict:
                 "client_key": settings.tiktok_client_key,
                 "client_secret": settings.tiktok_client_secret,
                 "grant_type": "refresh_token",
-                "refresh_token": connection.refresh_token,
+                "refresh_token": refresh_token,
             },
-            headers={"Content-Type": "application/x-www-form-urlencoded", "Cache-Control": "no-cache"},
+            headers={
+                "Content-Type": "application/x-www-form-urlencoded",
+                "Cache-Control": "no-cache",
+            },
         )
     data = response.json()
     if response.is_error or not data.get("access_token"):
-        raise HTTPException(status_code=502, detail=data.get("error_description") or data.get("error") or "TikTok refresh failed")
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                data.get("error_description")
+                or data.get("error")
+                or "TikTok refresh failed"
+            ),
+        )
 
     now = datetime.now(timezone.utc)
-    connection.access_token = str(data["access_token"])
-    connection.refresh_token = str(data.get("refresh_token") or connection.refresh_token)
+    connection.access_token = encrypt_secret(str(data["access_token"]))
+    connection.refresh_token = encrypt_secret(str(data.get("refresh_token") or refresh_token))
     connection.scope = str(data.get("scope") or connection.scope or "")
     connection.access_expires_at = now + timedelta(seconds=int(data.get("expires_in") or 0))
     connection.refresh_expires_at = now + timedelta(seconds=int(data.get("refresh_expires_in") or 0))
     connection.updated_at = now
+    db.add(
+        AuditLog(
+            workspace_id=workspace.workspace.id,
+            user_id=workspace.auth.user.id,
+            action="provider.tiktok.refreshed",
+            entity_type="platform_connection",
+            entity_id=connection.id,
+            details_json={"scopes": _scope_list(connection.scope)},
+        )
+    )
     db.commit()
-    return _status_payload(db)
+    return _status_payload(db, workspace.workspace.id)
 
 
 @router.post("/disconnect")
-async def tiktok_disconnect(db: Session = Depends(get_db)) -> dict:
-    connection = _connection(db)
+async def tiktok_disconnect(
+    request: Request,
+    workspace: WorkspaceContext = Depends(get_workspace_context),
+    db: Session = Depends(get_db),
+) -> dict:
+    require_csrf(request, workspace.auth.session)
+    connection = _connection(db, workspace.workspace.id)
     if not connection:
-        return _status_payload(db)
+        return _status_payload(db, workspace.workspace.id)
 
-    if _configured() and connection.access_token:
+    access_token = decrypt_secret(connection.access_token)
+    if _configured() and access_token:
         async with httpx.AsyncClient(timeout=20.0) as client:
             response = await client.post(
                 REVOKE_URL,
                 data={
                     "client_key": settings.tiktok_client_key,
                     "client_secret": settings.tiktok_client_secret,
-                    "token": connection.access_token,
+                    "token": access_token,
                 },
-                headers={"Content-Type": "application/x-www-form-urlencoded", "Cache-Control": "no-cache"},
+                headers={
+                    "Content-Type": "application/x-www-form-urlencoded",
+                    "Cache-Control": "no-cache",
+                },
             )
         if response.is_error:
             try:
-                detail = response.json().get("error_description") or response.json().get("error")
+                body = response.json()
+                detail = body.get("error_description") or body.get("error")
             except Exception:
                 detail = response.text
             raise HTTPException(status_code=502, detail=detail or "TikTok revoke failed")
@@ -300,5 +401,15 @@ async def tiktok_disconnect(db: Session = Depends(get_db)) -> dict:
     connection.access_expires_at = None
     connection.refresh_expires_at = None
     connection.updated_at = datetime.now(timezone.utc)
+    db.add(
+        AuditLog(
+            workspace_id=workspace.workspace.id,
+            user_id=workspace.auth.user.id,
+            action="provider.tiktok.disconnected",
+            entity_type="platform_connection",
+            entity_id=connection.id,
+            details_json={},
+        )
+    )
     db.commit()
-    return _status_payload(db)
+    return _status_payload(db, workspace.workspace.id)
