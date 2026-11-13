@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     auth_cookie_name: str = "ha_session"
     auth_session_days: int = 30
     auth_cookie_secure: bool = False
+    token_encryption_key: str = ""
 
     tiktok_client_key: str = ""
     tiktok_client_secret: str = ""
