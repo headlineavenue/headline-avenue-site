@@ -9,13 +9,15 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./headline_avenue.db"
     cors_origins: str = (
         "http://localhost:5173,http://localhost:5500,"
-        "https://headlineavenue.github.io"
+        "https://headlineavenue.github.io,https://headlineavenue.com,"
+        "https://www.headlineavenue.com"
     )
     frontend_origin: str = "http://localhost:5500"
 
     auth_cookie_name: str = "ha_session"
     auth_session_days: int = 30
     auth_cookie_secure: bool = False
+    auth_cookie_samesite: str = "lax"
     token_encryption_key: str = ""
 
     tiktok_client_key: str = ""
@@ -35,7 +37,12 @@ class Settings(BaseSettings):
 
     @property
     def session_cookie_samesite(self) -> str:
-        return "none" if self.session_cookie_secure else "lax"
+        value = self.auth_cookie_samesite.strip().lower()
+        if value not in {"lax", "strict", "none"}:
+            raise ValueError("AUTH_COOKIE_SAMESITE must be lax, strict, or none")
+        if value == "none" and not self.session_cookie_secure:
+            raise ValueError("SameSite=None requires Secure cookies")
+        return value
 
 
 @lru_cache
