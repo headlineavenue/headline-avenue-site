@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from ..models import PublishingJob, Source, Story, StoryOutput
+from ..models import AuditLog, PublishingJob, Source, Story, StoryOutput
 from ..security import WorkspaceContext, get_workspace_context
 
 
@@ -449,6 +449,8 @@ def dispatch_publish_draft(
     db: Session = Depends(get_db),
 ) -> PublishDispatchOut:
     draft = _get_publish_draft(db, draft_id, workspace.workspace.id)
+    if workspace.membership.role not in {"owner", "editor"}:
+        raise HTTPException(status_code=403, detail="Editor role is required to dispatch publishing jobs")
     if not payload.confirmed:
         raise HTTPException(status_code=409, detail="Final confirmation is required before distribution jobs can be created")
 
@@ -504,6 +506,21 @@ def dispatch_publish_draft(
     if story:
         story.status = "scheduled" if status == "scheduled" else "queued_for_publish"
 
+    db.add(
+        AuditLog(
+            workspace_id=workspace.workspace.id,
+            user_id=workspace.auth.user.id,
+            action="publishing.dispatch_created",
+            entity_type="story_output",
+            entity_id=dispatch.id,
+            details_json={
+                "story_id": draft.story_id,
+                "destinations": preflight.destinations,
+                "mode": preflight.mode,
+                "fingerprint": preflight.fingerprint,
+            },
+        )
+    )
     db.commit()
     db.refresh(dispatch)
     for job in jobs:
