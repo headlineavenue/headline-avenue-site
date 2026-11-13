@@ -5,6 +5,8 @@
   const fetcher = window.__haNativeFetch || window.fetch.bind(window);
   let loading = false;
   let sourceType = "all";
+  let transcriptionConfig = { configured: false, provider: "deepgram", model: "nova-3" };
+  let pollTimer = null;
 
   const escapeHtml = value => String(value ?? "")
     .replaceAll("&", "&amp;")
@@ -74,19 +76,37 @@
         sub: item.has_transcript ? "Transcript ready" : "Source text ready"
       };
     }
-    if (["uploaded", "uploading", "queued"].includes(status)) {
+    if (["uploaded", "uploading", "queued", "transcription_queued", "transcribing"].includes(status)) {
+      const labels = {
+        uploaded: "◌ Uploaded",
+        uploading: "◌ Uploading",
+        queued: "◌ Queued",
+        transcription_queued: "◌ Transcript queued",
+        transcribing: "◌ Transcribing"
+      };
+      const subs = {
+        uploaded: "Awaiting transcription",
+        uploading: "Saving private media",
+        queued: "Awaiting indexing",
+        transcription_queued: "Waiting for ingestion worker",
+        transcribing: "Timestamping speech and speakers"
+      };
       return {
         filter: "indexing",
         className: "indexing",
-        label: status === "uploaded" ? "◌ Uploaded" : "◌ Processing",
-        sub: item.storage_filename ? "Awaiting transcription" : "Awaiting indexing"
+        label: labels[status] || "◌ Processing",
+        sub: subs[status] || "Processing source"
       };
     }
     return {
       filter: "attention",
       className: "attention",
       label: "! Review",
-      sub: status === "upload_failed" ? "Upload failed" : "Ingestion needs attention"
+      sub: status === "upload_failed"
+        ? "Upload failed"
+        : status === "transcription_failed"
+          ? "Transcription failed"
+          : "Ingestion needs attention"
     };
   };
 
@@ -158,9 +178,22 @@
       const type = viewType(item.kind);
       const origin = sourceOrigin(item);
       const canCreate = Boolean(item.has_transcript || item.original_url);
-      const createAction = canCreate
-        ? `<button data-source-create-existing data-source-id="${escapeHtml(item.id)}" data-source-title="${escapeHtml(item.title || kindLabel(item.kind) + " source")}" data-source-kind="${escapeHtml(item.kind)}" data-source-url="${escapeHtml(item.original_url || "")}">Create story →</button>`
-        : '<button disabled title="Transcription is required before story analysis">Await transcript</button>';
+      let createAction = "";
+      if (canCreate) {
+        createAction = `<button data-source-create-existing data-source-id="${escapeHtml(item.id)}" data-source-title="${escapeHtml(item.title || kindLabel(item.kind) + " source")}" data-source-kind="${escapeHtml(item.kind)}" data-source-url="${escapeHtml(item.original_url || "")}">Create story →</button>`;
+      } else if (item.status === "uploaded" || item.status === "transcription_failed") {
+        if (transcriptionConfig.configured) {
+          createAction = `<button data-source-transcribe data-source-id="${escapeHtml(item.id)}">${item.status === "transcription_failed" ? "Retry transcript" : "Transcribe →"}</button>`;
+        } else {
+          createAction = '<button disabled title="Configure DEEPGRAM_API_KEY in the backend environment">Set up transcription</button>';
+        }
+      } else if (item.status === "transcription_queued") {
+        createAction = '<button disabled>Queued</button>';
+      } else if (item.status === "transcribing") {
+        createAction = '<button disabled>Transcribing…</button>';
+      } else {
+        createAction = '<button disabled title="Source text is not available yet">Await processing</button>';
+      }
 
       return `
         <article class="source-row" tabindex="0"
@@ -192,7 +225,7 @@
 
     const summary = document.getElementById("source-ingestion-summary");
     if (summary) {
-      const waiting = items.filter(item => ["uploaded", "uploading", "queued"].includes(item.status)).length;
+      const waiting = items.filter(item => ["uploaded", "uploading", "queued", "transcription_queued", "transcribing"].includes(item.status)).length;
       summary.innerHTML = waiting
         ? `<span class="activity-dot blue"></span><div><b>${waiting} source${waiting === 1 ? "" : "s"} awaiting processing</b><small>Uploaded files remain private until transcription/indexing completes.</small></div>`
         : '<span class="activity-dot green"></span><div><b>No ingestion backlog</b><small>All current sources are indexed or require explicit review.</small></div>';
@@ -237,6 +270,41 @@
     });
     rows.forEach(row => list?.appendChild(row));
     applyFilters();
+  }
+
+  function schedulePoll(items) {
+    if (pollTimer) {
+      clearTimeout(pollTimer);
+      pollTimer = null;
+    }
+    const active = items.some(item => ["transcription_queued", "transcribing"].includes(item.status));
+    if (active) {
+      pollTimer = window.setTimeout(() => loadLibrary(), 2500);
+    }
+  }
+
+  async function queueTranscription(button) {
+    const sourceId = button.dataset.sourceId;
+    if (!sourceId) return;
+    button.disabled = true;
+    const original = button.textContent;
+    button.textContent = "Queueing…";
+    try {
+      const response = await fetcher(`${config.apiBase}/sources/${encodeURIComponent(sourceId)}/transcribe`, {
+        method: "POST",
+        headers: { "Accept": "application/json" }
+      });
+      let detail = null;
+      try { detail = await response.clone().json(); } catch {}
+      if (!response.ok) throw new Error(detail?.detail || `Transcription API ${response.status}`);
+      toast("Transcription queued");
+      await loadLibrary();
+    } catch (error) {
+      console.error(error);
+      toast(error.message || "Could not queue transcription");
+      button.disabled = false;
+      button.textContent = original;
+    }
   }
 
   async function createStoryFromSource(button) {
@@ -286,14 +354,24 @@
     if (footer) footer.textContent = "Loading workspace sources…";
 
     try {
-      const response = await fetcher(`${config.apiBase}/sources/library`, {
-        headers: { "Accept": "application/json" },
-        cache: "no-store"
-      });
+      const [configResponse, response] = await Promise.all([
+        fetcher(`${config.apiBase}/sources/transcription/config`, {
+          headers: { "Accept": "application/json" },
+          cache: "no-store"
+        }),
+        fetcher(`${config.apiBase}/sources/library`, {
+          headers: { "Accept": "application/json" },
+          cache: "no-store"
+        })
+      ]);
+      if (configResponse.ok) {
+        transcriptionConfig = await configResponse.json();
+      }
       if (!response.ok) throw new Error(`Source Library API ${response.status}`);
       const payload = await response.json();
       renderMetrics(payload);
       renderRows(payload);
+      schedulePoll(Array.isArray(payload.sources) ? payload.sources : []);
     } catch (error) {
       console.warn("Workspace Source Library could not load.", error);
       const list = document.getElementById("source-library-list");
@@ -321,6 +399,11 @@
     document.getElementById("load-more-sources")?.addEventListener("click", loadLibrary);
 
     document.getElementById("source-library-list")?.addEventListener("click", event => {
+      const transcribe = event.target.closest("[data-source-transcribe]");
+      if (transcribe) {
+        queueTranscription(transcribe);
+        return;
+      }
       const create = event.target.closest("[data-source-create-existing]");
       if (create) {
         createStoryFromSource(create);
