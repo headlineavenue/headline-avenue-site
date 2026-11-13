@@ -97,6 +97,11 @@ def migrate() -> None:
         check=True,
         env=env,
     )
+    subprocess.run(
+        [sys.executable, "-m", "app.encrypt_legacy_tokens"],
+        check=True,
+        env=env,
+    )
 
 
 def verify() -> None:
@@ -116,7 +121,8 @@ def verify() -> None:
         "SELECT access_token FROM platform_connections WHERE id = %s",
         (LEGACY_CONNECTION_ID,),
     )
-    assert access_token == "legacy-access-token"
+    assert access_token.startswith("enc:v1:"), access_token
+    assert access_token != "legacy-access-token"
 
     # The old global provider uniqueness must be gone.
     now = datetime.now(timezone.utc)
