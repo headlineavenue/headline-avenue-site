@@ -5,7 +5,7 @@
   const isLocal = localHosts.has(window.location.hostname);
   const apiOrigin = isLocal
     ? "http://127.0.0.1:8000"
-    : "https://headline-avenue-site-production.up.railway.app";
+    : "https://api.headlineavenue.com";
 
   window.HeadlineAvenueConfig = Object.freeze({
     apiOrigin,
