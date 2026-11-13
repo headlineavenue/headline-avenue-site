@@ -53,6 +53,10 @@ class WorkspaceMembershipOut(BaseModel):
     role: str
 
 
+class AuthConfigOut(BaseModel):
+    registration_enabled: bool
+
+
 class AuthSessionOut(BaseModel):
     user: UserOut
     workspaces: list[WorkspaceMembershipOut]
@@ -138,13 +142,18 @@ def _session_payload(db: Session, user: User, csrf_token: str) -> AuthSessionOut
     )
 
 
+@router.get("/config", response_model=AuthConfigOut)
+def auth_config() -> AuthConfigOut:
+    return AuthConfigOut(registration_enabled=settings.registration_enabled)
+
+
 @router.post("/register", response_model=AuthSessionOut, status_code=201)
 def register(
     payload: RegisterIn,
     response: Response,
     db: Session = Depends(get_db),
 ) -> AuthSessionOut:
-    if not settings.auth_registration_enabled:
+    if not settings.registration_enabled:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Public registration is not enabled",
