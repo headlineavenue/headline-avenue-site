@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from ..models import Source, Story, StoryOutput
+from ..models import AuditLog, Source, Story, StoryOutput
 from ..services.editorial_intelligence import (
     build_custom_editorial_variant,
     build_editorial_variants,
@@ -384,6 +384,20 @@ def approve_editorial_review(
 
     promoted = _promote_pack_outputs_after_approval(db, story, selection)
     story.status = "pack_ready" if promoted else "editorial_ready"
+    db.add(
+        AuditLog(
+            workspace_id=workspace.workspace.id,
+            user_id=workspace.auth.user.id,
+            action="editorial.sourceguard_approved",
+            entity_type="story_output",
+            entity_id=selection.id,
+            details_json={
+                "story_id": story.id,
+                "note": payload.note.strip(),
+                "promoted_outputs": promoted,
+            },
+        )
+    )
 
     db.commit()
     db.refresh(selection)
