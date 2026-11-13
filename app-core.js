@@ -141,12 +141,19 @@ document.addEventListener("DOMContentLoaded",()=>{
     if(summary)summary.textContent=label+" · "+(formats.length?formats.join(" + "):"No video format")+" · "+mode;
     const guard=document.querySelector(".create-submit-row small");
     if(guard)guard.textContent=document.getElementById("create-sourceguard")?.checked?"SourceGuard enabled":"SourceGuard off";
+    const submit=document.querySelector("#create-builder-form .create-submit");
+    if(submit){
+      submit.textContent=["upload","audio","pdf"].includes(createSourceType)
+        ?"Upload source →"
+        :"Build Story Workspace →";
+    }
   };
 
   sourceTypeButtons.forEach(btn=>btn.addEventListener("click",()=>{
     createSourceType=btn.dataset.sourceType;
     sourceTypeButtons.forEach(b=>b.classList.toggle("active",b===btn));
     sourcePanes.forEach(p=>p.classList.toggle("active",p.dataset.sourcePane===createSourceType));
+    updateCreateSummary();
   }));
 
   document.getElementById("sample-source")?.addEventListener("click",()=>{
@@ -271,11 +278,41 @@ document.addEventListener("DOMContentLoaded",()=>{
     try{
       if(!(await apiIsReady()))throw new Error("Headline Avenue API is not running on port 8000.");
 
+      if(["upload","audio","pdf"].includes(createSourceType)){
+        const inputId=createSourceType==="upload"
+          ?"create-file-upload"
+          :createSourceType==="audio"
+            ?"create-audio-upload"
+            :"create-pdf-upload";
+        const file=document.getElementById(inputId)?.files?.[0];
+        if(!file)throw new Error("Choose a file first.");
+
+        const formData=new FormData();
+        formData.append("kind",createSourceType==="upload"?"video":createSourceType);
+        formData.append("file",file,file.name);
+
+        const response=await fetch(API_BASE+"/sources/upload",{
+          method:"POST",
+          body:formData
+        });
+        if(!response.ok){
+          let detail="";
+          try{detail=(await response.json())?.detail||""}catch{detail=await response.text()}
+          throw new Error("Upload "+response.status+(detail?": "+detail:""));
+        }
+
+        const source=await response.json();
+        openView("sources");
+        window.HeadlineAvenueLoadSourceLibrary?.();
+        showToast(source.title+" uploaded — awaiting transcription");
+        return;
+      }
+
       const source=await apiRequest("/sources",{
         method:"POST",
         body:JSON.stringify({
           workspace_slug:"headline-avenue",
-          kind:createSourceType==="upload"?"video":createSourceType,
+          kind:createSourceType,
           title:sourceTitle||null,
           original_url:sourceUrl||null,
           transcript_text:transcriptText,
