@@ -5,17 +5,28 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from ..models import AuditLog, Source, Story
+from ..config import get_settings
+from ..models import (
+    AuditLog,
+    IngestionJob,
+    Source,
+    SourceTranscriptSegment,
+    Story,
+)
 from ..schemas import (
+    IngestionJobOut,
     SourceCreate,
     SourceLibraryItemOut,
     SourceLibraryOut,
     SourceOut,
+    SourceTranscriptOut,
+    TranscriptSegmentOut,
 )
 from ..services.media_storage import store_upload
 from ..security import WorkspaceContext, get_workspace_context
 
 router = APIRouter(prefix="/sources", tags=["sources"])
+settings = get_settings()
 
 
 @router.post("", response_model=SourceOut, status_code=201)
@@ -178,6 +189,85 @@ def source_library(
         indexed=indexed,
         uploaded=uploaded,
         needs_attention=needs_attention,
+    )
+
+
+@router.post("/{source_id}/transcribe", response_model=IngestionJobOut, status_code=202)
+def queue_transcription(
+    source_id: str,
+    workspace: WorkspaceContext = Depends(get_workspace_context),
+    db: Session = Depends(get_db),
+) -> IngestionJob:
+    source = db.get(Source, source_id)
+    if not source or source.workspace_id != workspace.workspace.id:
+        raise HTTPException(status_code=404, detail="Source not found")
+
+    media = dict((source.metadata_json or {}).get("media") or {})
+    if not media.get("key"):
+        raise HTTPException(status_code=400, detail="Source does not contain stored media")
+    if source.transcript_text and source.status == "indexed":
+        raise HTTPException(status_code=409, detail="Source is already transcribed")
+
+    existing = db.scalar(
+        select(IngestionJob)
+        .where(
+            IngestionJob.workspace_id == workspace.workspace.id,
+            IngestionJob.source_id == source.id,
+            IngestionJob.job_type == "transcription",
+            IngestionJob.status.in_(["queued", "processing"]),
+        )
+        .order_by(IngestionJob.created_at.desc())
+    )
+    if existing:
+        return existing
+
+    job = IngestionJob(
+        workspace_id=workspace.workspace.id,
+        source_id=source.id,
+        job_type="transcription",
+        provider=settings.transcription_provider,
+        status="queued",
+    )
+    source.status = "transcription_queued"
+    db.add(job)
+    db.flush()
+    db.add(
+        AuditLog(
+            workspace_id=workspace.workspace.id,
+            user_id=workspace.auth.user.id,
+            action="source.transcription_queued",
+            entity_type="source",
+            entity_id=source.id,
+            details_json={"job_id": job.id, "provider": job.provider},
+        )
+    )
+    db.commit()
+    db.refresh(job)
+    return job
+
+
+@router.get("/{source_id}/transcription", response_model=SourceTranscriptOut)
+def source_transcription(
+    source_id: str,
+    workspace: WorkspaceContext = Depends(get_workspace_context),
+    db: Session = Depends(get_db),
+) -> SourceTranscriptOut:
+    source = db.get(Source, source_id)
+    if not source or source.workspace_id != workspace.workspace.id:
+        raise HTTPException(status_code=404, detail="Source not found")
+
+    segments = list(
+        db.scalars(
+            select(SourceTranscriptSegment)
+            .where(SourceTranscriptSegment.source_id == source.id)
+            .order_by(SourceTranscriptSegment.sequence.asc())
+        )
+    )
+    return SourceTranscriptOut(
+        source_id=source.id,
+        status=source.status,
+        transcript_text=source.transcript_text,
+        segments=[TranscriptSegmentOut.model_validate(segment) for segment in segments],
     )
 
 
