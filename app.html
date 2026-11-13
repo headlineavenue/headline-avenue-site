@@ -313,18 +313,18 @@
       </div>
 
       <div class="desk-metrics">
-        <article><span>ACTIVE STORIES</span><strong>12</strong><small>3 updated today</small></article>
-        <article><span>NEEDS REVIEW</span><strong class="metric-gold">4</strong><small>SourceGuard or copy</small></article>
-        <article><span>STORY PACKS</span><strong>27</strong><small>Across 8 stories</small></article>
-        <article><span>SCHEDULED</span><strong class="metric-green">8</strong><small>Next 24 hours</small></article>
+        <article><span>ACTIVE STORIES</span><strong id="story-metric-active">—</strong><small>Workspace-backed</small></article>
+        <article><span>NEEDS REVIEW</span><strong class="metric-gold" id="story-metric-review">—</strong><small>SourceGuard or copy</small></article>
+        <article><span>GENERATED ASSETS</span><strong id="story-metric-packs">—</strong><small>Persisted Story Pack outputs</small></article>
+        <article><span>SCHEDULED</span><strong class="metric-green" id="story-metric-scheduled">—</strong><small>Publishing queue</small></article>
       </div>
 
       <div class="story-desk-toolbar">
         <div class="story-tabs" role="tablist" aria-label="Story status">
-          <button class="active" data-story-tab="all">All <span>12</span></button>
-          <button data-story-tab="active">Active <span>5</span></button>
-          <button data-story-tab="review">Needs review <span>4</span></button>
-          <button data-story-tab="scheduled">Scheduled <span>3</span></button>
+          <button class="active" data-story-tab="all">All <span id="story-tab-all-count">—</span></button>
+          <button data-story-tab="active">Active <span id="story-tab-active-count">—</span></button>
+          <button data-story-tab="review">Needs review <span id="story-tab-review-count">—</span></button>
+          <button data-story-tab="scheduled">Scheduled <span id="story-tab-scheduled-count">—</span></button>
         </div>
         <div class="story-tools">
           <label class="story-search"><span>⌕</span><input id="story-search-input" type="search" placeholder="Search stories or sources"></label>
@@ -333,6 +333,7 @@
             <option value="entertainment">Entertainment</option>
             <option value="technology">Technology</option>
             <option value="sports">Sports</option>
+            <option value="general">General</option>
           </select>
           <select id="story-sort" aria-label="Sort stories">
             <option value="updated">Recently updated</option>
@@ -401,7 +402,7 @@
           </div>
 
           <div id="story-empty-filter" class="story-empty-filter" hidden>No stories match these filters.</div>
-          <div class="story-table-footer"><span>Showing <b id="story-visible-count">5</b> prototype stories</span><button id="load-more-stories">Load more</button></div>
+          <div class="story-table-footer"><span id="story-desk-footer-label">Loading workspace stories…</span><button id="load-more-stories">Refresh</button></div>
         </div>
 
         <aside class="desk-insights">
