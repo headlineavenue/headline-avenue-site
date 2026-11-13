@@ -2,6 +2,8 @@
   const config = window.HeadlineAvenueConfig;
   if (!config) throw new Error("Headline Avenue runtime configuration is missing");
 
+  let authConfig = { registration_enabled: true };
+
   const auth = {
     user: null,
     workspaces: [],
@@ -81,12 +83,16 @@
   }
 
   function gateMarkup(mode = "login") {
-    const register = mode === "register";
+    const registerAllowed = Boolean(authConfig.registration_enabled);
+    const register = registerAllowed && mode === "register";
+    const tabs = registerAllowed
+      ? `<div class="ha-auth-tabs"><button type="button" data-auth-mode="login" class="${register ? "" : "active"}">Sign in</button><button type="button" data-auth-mode="register" class="${register ? "active" : ""}">Create account</button></div>`
+      : "";
     return `
       <div class="ha-auth-gate" id="ha-auth-gate">
         <section class="ha-auth-card">
           <div class="ha-auth-brand"><img src="assets/headline-avenue-logo.png" alt=""><div><b>HEADLINE AVENUE</b><small>EDITORIAL OS</small></div></div>
-          <div class="ha-auth-tabs"><button type="button" data-auth-mode="login" class="${register ? "" : "active"}">Sign in</button><button type="button" data-auth-mode="register" class="${register ? "active" : ""}">Create account</button></div>
+          ${tabs}
           <h1>${register ? "Create your workspace" : "Welcome back"}</h1>
           <p>${register ? "Start a private editorial workspace for sources, stories and connected publishing accounts." : "Sign in to your Headline Avenue workspace."}</p>
           <form class="ha-auth-form" data-auth-form="${mode}">
@@ -102,6 +108,7 @@
   }
 
   function showGate(mode = "login") {
+    if (!authConfig.registration_enabled) mode = "login";
     injectStyles();
     document.getElementById("ha-auth-gate")?.remove();
     document.body.insertAdjacentHTML("beforeend", gateMarkup(mode));
@@ -221,10 +228,15 @@
   window.HeadlineAvenueLogout = logout;
 
   injectStyles();
-  authApi("/auth/me")
-    .then(applySession)
-    .catch(error => {
-      if (error.status !== 401) console.warn("Headline Avenue session check failed:", error);
-      showGate("login");
+  authApi("/auth/config")
+    .then(config => { authConfig = config || authConfig; })
+    .catch(error => console.warn("Headline Avenue auth config check failed:", error))
+    .finally(() => {
+      authApi("/auth/me")
+        .then(applySession)
+        .catch(error => {
+          if (error.status !== 401) console.warn("Headline Avenue session check failed:", error);
+          showGate("login");
+        });
     });
 })();
