@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - feature/auth-workspace-foundation
   pull_request:
     branches:
       - main
@@ -49,6 +48,13 @@ jobs:
 
       - name: Compile backend
         run: python -m compileall -q app
+
+      - name: Check frontend JavaScript syntax
+        working-directory: .
+        run: |
+          node --check runtime-config.js
+          node --check auth.js
+          node --check app.js
 
       - name: Run tests
         run: pytest -q
