@@ -25,14 +25,16 @@ Current policy:
 
 ## Deployment blocker: site topology
 
-The current public application is served from `headlineavenue.github.io` while the API is served from `*.up.railway.app`.
+The branded backend is now live at `https://api.headlineavenue.com`. The intended production frontend is `https://headlineavenue.com`, which places the browser app and API under the same registrable domain.
 
-That is cross-site browser authentication. The feature branch deliberately uses secure HttpOnly cookies, which are safer than storing bearer credentials in JavaScript, but cross-site cookies can be restricted by browser privacy controls.
+Until the frontend is moved from GitHub Pages to `headlineavenue.com`, the temporary topology remains cross-site. Do not deploy authenticated customer access on that temporary topology unless `AUTH_COOKIE_SAMESITE=none` is explicitly tested in target browsers.
 
-Do not merge/deploy this authentication branch until one of these is proven:
+Preferred production policy after the frontend move:
 
-1. the target browsers reliably retain/send the session cookie with `credentials: include`, or
-2. the production frontend and API are moved under the same registrable custom domain (preferred), for example `app.example.com` and `api.example.com`.
+- `AUTH_COOKIE_SECURE=true`
+- `AUTH_COOKIE_SAMESITE=lax`
+- frontend: `https://headlineavenue.com`
+- API: `https://api.headlineavenue.com`
 
 ## Migration rollout
 
