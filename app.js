@@ -159,10 +159,14 @@
   let domReady = false;
   document.addEventListener("DOMContentLoaded", () => { domReady = true; }, { once: true });
 
-  const version = "20261112-1930";
+  const version = "20261113-0435";
   Promise.resolve(window.HeadlineAvenueAuthReady).then(() => Promise.all([
     nativeFetch(`app-core.js?v=${version}`, { cache: "no-store" }).then(r => {
       if (!r.ok) throw new Error("Could not load app-core.js");
+      return r.text();
+    }),
+    nativeFetch(`real-stories.js?v=${version}`, { cache: "no-store" }).then(r => {
+      if (!r.ok) throw new Error("Could not load real-stories.js");
       return r.text();
     }),
     nativeFetch(`session-persistence.js?v=${version}`, { cache: "no-store" }).then(r => {
@@ -205,8 +209,9 @@
       if (!r.ok) throw new Error("Could not load publish-accounts.js");
       return r.text();
     })
-  ])).then(([core, persistence, intelligence, editorial, gating, restore, storyPackSync, publishBridge, publishRecovery, publishPipeline, publishAccounts]) => {
+  ])).then(([core, realStories, persistence, intelligence, editorial, gating, restore, storyPackSync, publishBridge, publishRecovery, publishPipeline, publishAccounts]) => {
     (0, eval)(core);
+    (0, eval)(realStories);
     (0, eval)(persistence);
     (0, eval)(intelligence);
     (0, eval)(editorial);
