@@ -19,3 +19,7 @@ backend/*.sqlite3
 Thumbs.db
 .vscode/
 .idea/
+
+# Private local media uploads / test artifacts
+backend/data/uploads/
+backend/test_uploads/

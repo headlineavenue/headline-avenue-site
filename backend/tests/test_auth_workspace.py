@@ -1,10 +1,14 @@
 import os
+import shutil
 from pathlib import Path
 
 os.environ["APP_ENV"] = "test"
 os.environ["DATABASE_URL"] = "sqlite:///./headline_avenue_test.db"
 os.environ["AUTH_COOKIE_SECURE"] = "false"
 os.environ["TOKEN_ENCRYPTION_KEY"] = "vP3YScmTVY-fyL7pLvsoGNNJV0iA0Qvj60p6UfLSCK4="
+os.environ["MEDIA_STORAGE_BACKEND"] = "local"
+os.environ["MEDIA_LOCAL_DIR"] = "./test_uploads"
+os.environ["MEDIA_MAX_UPLOAD_MB"] = "5"
 
 from fastapi.testclient import TestClient
 
@@ -13,11 +17,13 @@ from app.main import app
 
 
 DB_PATH = Path("headline_avenue_test.db")
+UPLOAD_ROOT = Path("test_uploads")
 
 
 def reset_database() -> None:
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
+    shutil.rmtree(UPLOAD_ROOT, ignore_errors=True)
 
 
 def register(client: TestClient, email: str, name: str) -> dict:
@@ -270,3 +276,168 @@ def test_story_desk_uses_authenticated_workspace_data() -> None:
         assert item["sourceguard_status"] == "supported"
         assert item["publish_status"] == "drafting"
         assert item["output_count"] == 0
+
+
+def test_binary_media_upload_is_private_workspace_source() -> None:
+    reset_database()
+    with TestClient(app) as client:
+        session = register(client, "media@example.com", "Media")
+        workspace_id = session["active_workspace_id"]
+        headers = {
+            "X-Workspace-ID": workspace_id,
+            "X-CSRF-Token": session["csrf_token"],
+        }
+
+        payload = b"fake-mp4-payload-for-private-storage"
+        response = client.post(
+            "/api/v1/sources/upload",
+            headers=headers,
+            data={"kind": "video"},
+            files={"file": ("interview.mp4", payload, "video/mp4")},
+        )
+        assert response.status_code == 201, response.text
+        source = response.json()
+        assert source["kind"] == "video"
+        assert source["status"] == "uploaded"
+
+        media = source["metadata_json"]["media"]
+        assert media["backend"] == "local"
+        assert media["filename"] == "interview.mp4"
+        assert media["content_type"] == "video/mp4"
+        assert media["size"] == len(payload)
+        assert media["private"] is True
+        assert media["sha256"]
+
+        stored_path = UPLOAD_ROOT / media["key"]
+        assert stored_path.exists()
+        assert stored_path.read_bytes() == payload
+
+        library = client.get(
+            "/api/v1/sources/library",
+            headers={"X-Workspace-ID": workspace_id},
+        )
+        assert library.status_code == 200, library.text
+        library_payload = library.json()
+        assert library_payload["total"] == 1
+        assert library_payload["uploaded"] == 1
+        assert library_payload["indexed"] == 0
+        assert library_payload["needs_attention"] == 0
+        item = library_payload["sources"][0]
+        assert item["id"] == source["id"]
+        assert item["storage_filename"] == "interview.mp4"
+        assert item["storage_size"] == len(payload)
+        assert item["has_transcript"] is False
+
+
+def test_media_upload_rejects_wrong_content_type() -> None:
+    reset_database()
+    with TestClient(app) as client:
+        session = register(client, "badmedia@example.com", "BadMedia")
+        headers = {
+            "X-Workspace-ID": session["active_workspace_id"],
+            "X-CSRF-Token": session["csrf_token"],
+        }
+        response = client.post(
+            "/api/v1/sources/upload",
+            headers=headers,
+            data={"kind": "audio"},
+            files={"file": ("not-audio.txt", b"hello", "text/plain")},
+        )
+        assert response.status_code == 400
+
+
+def test_transcription_job_indexes_source_with_timestamped_segments(monkeypatch) -> None:
+    from app import ingestion_worker
+    from app.services.transcription import (
+        TranscriptSegmentResult,
+        TranscriptionResult,
+    )
+
+    reset_database()
+    with TestClient(app) as client:
+        session = register(client, "transcribe@example.com", "Transcribe")
+        workspace_id = session["active_workspace_id"]
+        headers = {
+            "X-Workspace-ID": workspace_id,
+            "X-CSRF-Token": session["csrf_token"],
+        }
+
+        upload = client.post(
+            "/api/v1/sources/upload",
+            headers=headers,
+            data={"kind": "video"},
+            files={"file": ("interview.mp4", b"fake-video-bytes", "video/mp4")},
+        )
+        assert upload.status_code == 201, upload.text
+        source_id = upload.json()["id"]
+
+        queued = client.post(
+            f"/api/v1/sources/{source_id}/transcribe",
+            headers=headers,
+        )
+        assert queued.status_code == 202, queued.text
+        job = queued.json()
+        assert job["source_id"] == source_id
+        assert job["status"] == "queued"
+        assert job["job_type"] == "transcription"
+
+        fake_result = TranscriptionResult(
+            text="Speaker zero opens the story. Speaker one answers the question.",
+            segments=[
+                TranscriptSegmentResult(
+                    sequence=0,
+                    start_ms=250,
+                    end_ms=2250,
+                    speaker="0",
+                    text="Speaker zero opens the story.",
+                    confidence=0.97,
+                ),
+                TranscriptSegmentResult(
+                    sequence=1,
+                    start_ms=2400,
+                    end_ms=5100,
+                    speaker="1",
+                    text="Speaker one answers the question.",
+                    confidence=0.94,
+                ),
+            ],
+            provider="deepgram",
+            model="nova-3",
+            request_id="dg-test-request",
+            language="en",
+            duration_seconds=5.2,
+        )
+        monkeypatch.setattr(
+            ingestion_worker,
+            "transcribe_media",
+            lambda media: fake_result,
+        )
+
+        assert ingestion_worker.process_one() is True
+
+        transcript = client.get(
+            f"/api/v1/sources/{source_id}/transcription",
+            headers={"X-Workspace-ID": workspace_id},
+        )
+        assert transcript.status_code == 200, transcript.text
+        payload = transcript.json()
+        assert payload["status"] == "indexed"
+        assert payload["transcript_text"] == fake_result.text
+        assert len(payload["segments"]) == 2
+        assert payload["segments"][0]["start_ms"] == 250
+        assert payload["segments"][0]["end_ms"] == 2250
+        assert payload["segments"][0]["speaker"] == "0"
+        assert payload["segments"][1]["speaker"] == "1"
+
+        library = client.get(
+            "/api/v1/sources/library",
+            headers={"X-Workspace-ID": workspace_id},
+        )
+        assert library.status_code == 200, library.text
+        library_payload = library.json()
+        assert library_payload["indexed"] == 1
+        assert library_payload["uploaded"] == 0
+        assert library_payload["sources"][0]["has_transcript"] is True
+
+        second_pass = ingestion_worker.process_one()
+        assert second_pass is False

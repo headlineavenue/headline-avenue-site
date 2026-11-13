@@ -40,6 +40,31 @@ Start-Process powershell -ArgumentList "-NoExit", "-Command", $frontendCommand
 Start-Sleep -Milliseconds 600
 Start-Process powershell -ArgumentList "-NoExit", "-Command", $backendCommand
 
+$backendReady = $false
+for ($attempt = 0; $attempt -lt 30; $attempt++) {
+    try {
+        $health = Invoke-WebRequest -Uri "http://127.0.0.1:8000/health" -UseBasicParsing -TimeoutSec 1
+        if ($health.StatusCode -eq 200) {
+            $backendReady = $true
+            break
+        }
+    } catch {
+        Start-Sleep -Milliseconds 500
+    }
+}
+
+if (-not $backendReady) {
+    Write-Host "Backend health check did not become ready. Worker was not started." -ForegroundColor Red
+    exit 1
+}
+
+$workerCommand = @"
+Set-Location '$Backend'
+Write-Host 'HEADLINE AVENUE - INGESTION WORKER' -ForegroundColor Yellow
+& '$Python' -m app.ingestion_worker
+"@
+Start-Process powershell -ArgumentList "-NoExit", "-Command", $workerCommand
+
 if ($WithTunnel) {
     $tunnelCommand = @"
 Write-Host 'HEADLINE AVENUE - OPTIONAL CLOUDFLARE TUNNEL' -ForegroundColor Magenta
@@ -56,6 +81,7 @@ Write-Host ""
 Write-Host "Local services opened:" -ForegroundColor Green
 Write-Host "  Frontend  -> http://localhost:5500/app.html"
 Write-Host "  Backend   -> http://127.0.0.1:8000"
+Write-Host "  Worker    -> queued media transcription"
 if ($WithTunnel) {
     Write-Host "  Tunnel    -> optional temporary HTTPS URL"
 }

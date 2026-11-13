@@ -24,6 +24,23 @@ class Settings(BaseSettings):
     auth_bootstrap_owner_name: str = "Headline Avenue Owner"
     token_encryption_key: str = ""
 
+    media_storage_backend: str = "local"
+    media_local_dir: str = "./data/uploads"
+    media_max_upload_mb: int = 500
+    media_s3_endpoint_url: str = ""
+    media_s3_bucket: str = ""
+    media_s3_access_key_id: str = ""
+    media_s3_secret_access_key: str = ""
+    media_s3_region: str = "auto"
+
+    transcription_provider: str = "deepgram"
+    deepgram_api_key: str = ""
+    deepgram_api_base: str = "https://api.deepgram.com"
+    deepgram_model: str = "nova-3"
+    deepgram_language: str = "multi"
+    deepgram_diarize: bool = True
+    ingestion_worker_poll_seconds: float = 2.0
+
     tiktok_client_key: str = ""
     tiktok_client_secret: str = ""
     tiktok_redirect_uri: str = ""

@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - feature/media-ingestion-foundation
   pull_request:
     branches:
       - main
@@ -56,6 +57,7 @@ jobs:
           node --check auth.js
           node --check app.js
           node --check real-stories.js
+          node --check real-sources.js
 
       - name: Run tests
         run: pytest -q
