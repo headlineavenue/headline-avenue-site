@@ -11,4 +11,4 @@ COPY app ./app
 
 EXPOSE 8000
 
-CMD ["sh", "-c", "python -m app.bootstrap_db && alembic upgrade head && python -m app.encrypt_legacy_tokens && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+CMD ["sh", "-c", "python -m app.bootstrap_db && alembic upgrade head && python -m app.encrypt_legacy_tokens && python -m app.bootstrap_owner && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
