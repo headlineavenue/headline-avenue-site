@@ -102,6 +102,58 @@ class Source(Base):
     workspace: Mapped["Workspace"] = relationship(back_populates="sources")
     stories: Mapped[list["Story"]] = relationship(back_populates="source")
     evidence_items: Mapped[list["Evidence"]] = relationship(back_populates="source")
+    transcript_segments: Mapped[list["SourceTranscriptSegment"]] = relationship(
+        back_populates="source", cascade="all, delete-orphan", order_by="SourceTranscriptSegment.sequence"
+    )
+    ingestion_jobs: Mapped[list["IngestionJob"]] = relationship(
+        back_populates="source", cascade="all, delete-orphan"
+    )
+
+
+class SourceTranscriptSegment(Base):
+    __tablename__ = "source_transcript_segments"
+    __table_args__ = (
+        UniqueConstraint("source_id", "sequence", name="uq_source_transcript_segment_sequence"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    source_id: Mapped[str] = mapped_column(
+        ForeignKey("sources.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    sequence: Mapped[int] = mapped_column(Integer, nullable=False)
+    start_ms: Mapped[int] = mapped_column(Integer, nullable=False)
+    end_ms: Mapped[int] = mapped_column(Integer, nullable=False)
+    speaker: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    text: Mapped[str] = mapped_column(Text, nullable=False)
+    confidence: Mapped[float | None] = mapped_column(Float, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
+
+    source: Mapped["Source"] = relationship(back_populates="transcript_segments")
+
+
+class IngestionJob(Base):
+    __tablename__ = "ingestion_jobs"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    workspace_id: Mapped[str] = mapped_column(
+        ForeignKey("workspaces.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    source_id: Mapped[str] = mapped_column(
+        ForeignKey("sources.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    job_type: Mapped[str] = mapped_column(String(40), default="transcription", index=True)
+    provider: Mapped[str] = mapped_column(String(40), default="deepgram", index=True)
+    status: Mapped[str] = mapped_column(String(40), default="queued", index=True)
+    attempts: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=now_utc, onupdate=now_utc
+    )
+
+    source: Mapped["Source"] = relationship(back_populates="ingestion_jobs")
 
 
 class Story(Base):
