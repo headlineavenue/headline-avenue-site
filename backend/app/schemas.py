@@ -58,6 +58,39 @@ class SourceLibraryOut(BaseModel):
     needs_attention: int
 
 
+class IngestionJobOut(ORMModel):
+    id: str
+    workspace_id: str
+    source_id: str
+    job_type: str
+    provider: str
+    status: str
+    attempts: int
+    error_message: str | None = None
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
+    created_at: datetime
+    updated_at: datetime
+
+
+class TranscriptSegmentOut(ORMModel):
+    id: str
+    source_id: str
+    sequence: int
+    start_ms: int
+    end_ms: int
+    speaker: str | None = None
+    text: str
+    confidence: float | None = None
+
+
+class SourceTranscriptOut(BaseModel):
+    source_id: str
+    status: str
+    transcript_text: str | None = None
+    segments: list[TranscriptSegmentOut]
+
+
 class StoryCreate(BaseModel):
     workspace_slug: str = "demo"
     source_id: str
