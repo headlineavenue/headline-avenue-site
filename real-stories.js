@@ -218,8 +218,13 @@
       renderRows(payload);
       renderInsights(payload);
     } catch (error) {
-      console.warn("Workspace Story Desk could not load; keeping prototype fallback.", error);
-      if (footer) footer.textContent = "Prototype fallback — workspace Story Desk API unavailable";
+      console.warn("Workspace Story Desk could not load.", error);
+      const list = document.getElementById("stories-list");
+      if (list) list.innerHTML = '<div class="story-empty-filter">Story Desk unavailable. Check the API connection and try again.</div>';
+      if (footer) footer.textContent = "Workspace Story Desk unavailable";
+      ["story-metric-active","story-metric-review","story-metric-packs","story-metric-scheduled",
+       "story-tab-all-count","story-tab-active-count","story-tab-review-count","story-tab-scheduled-count"]
+        .forEach(id => { const node = document.getElementById(id); if (node) node.textContent = "—"; });
     } finally {
       loading = false;
     }
