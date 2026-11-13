@@ -33,6 +33,14 @@ class Settings(BaseSettings):
     media_s3_secret_access_key: str = ""
     media_s3_region: str = "auto"
 
+    transcription_provider: str = "deepgram"
+    deepgram_api_key: str = ""
+    deepgram_api_base: str = "https://api.deepgram.com"
+    deepgram_model: str = "nova-3"
+    deepgram_language: str = "multi"
+    deepgram_diarize: bool = True
+    ingestion_worker_poll_seconds: float = 2.0
+
     tiktok_client_key: str = ""
     tiktok_client_secret: str = ""
     tiktok_redirect_uri: str = ""
