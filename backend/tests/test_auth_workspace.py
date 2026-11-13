@@ -68,7 +68,10 @@ def test_workspace_isolation_blocks_cross_tenant_reads() -> None:
 
         created = owner_a.post(
             "/api/v1/sources",
-            headers={"X-Workspace-ID": workspace_a},
+            headers={
+                "X-Workspace-ID": workspace_a,
+                "X-CSRF-Token": session_a["csrf_token"],
+            },
             json={
                 "kind": "transcript",
                 "title": "Private Alpha Source",
@@ -108,3 +111,35 @@ def test_workspace_header_is_required_for_product_api() -> None:
         response = client.get("/api/v1/sources")
         assert response.status_code == 400
         assert response.json()["detail"] == "X-Workspace-ID header is required"
+
+
+def test_authenticated_mutation_requires_csrf() -> None:
+    reset_database()
+    with TestClient(app) as client:
+        session = register(client, "csrf@example.com", "CSRF")
+        workspace_id = session["active_workspace_id"]
+
+        blocked = client.post(
+            "/api/v1/sources",
+            headers={"X-Workspace-ID": workspace_id},
+            json={
+                "kind": "transcript",
+                "title": "Blocked Source",
+                "transcript_text": "This write should require a CSRF token.",
+            },
+        )
+        assert blocked.status_code == 403
+
+        allowed = client.post(
+            "/api/v1/sources",
+            headers={
+                "X-Workspace-ID": workspace_id,
+                "X-CSRF-Token": session["csrf_token"],
+            },
+            json={
+                "kind": "transcript",
+                "title": "Allowed Source",
+                "transcript_text": "This write includes the session CSRF token.",
+            },
+        )
+        assert allowed.status_code == 201, allowed.text
