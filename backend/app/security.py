@@ -118,6 +118,7 @@ def require_workspace(
 
 
 def get_workspace_context(
+    request: Request,
     workspace_id: str | None = Header(default=None, alias="X-Workspace-ID"),
     auth: AuthContext = Depends(get_auth_context),
     db: Session = Depends(get_db),
@@ -128,4 +129,6 @@ def get_workspace_context(
             detail="X-Workspace-ID header is required",
         )
     workspace, membership = require_workspace(workspace_id, auth, db)
+    if request.method.upper() not in {"GET", "HEAD", "OPTIONS"}:
+        require_csrf(request, auth.session)
     return WorkspaceContext(auth=auth, workspace=workspace, membership=membership)
