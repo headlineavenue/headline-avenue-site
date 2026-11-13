@@ -5,7 +5,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from ..models import Source, Story
+from ..models import AuditLog, Source, Story
 from ..schemas import (
     SourceCreate,
     SourceLibraryItemOut,
@@ -78,6 +78,16 @@ async def upload_source(
     except Exception as exc:
         source.status = "upload_failed"
         source.metadata_json = {"media": {"error": str(exc)}}
+        db.add(
+            AuditLog(
+                workspace_id=workspace.workspace.id,
+                user_id=workspace.auth.user.id,
+                action="source.media_upload_failed",
+                entity_type="source",
+                entity_id=source.id,
+                details_json={"kind": kind, "filename": file.filename},
+            )
+        )
         db.commit()
         raise HTTPException(status_code=500, detail="Media upload failed") from exc
 
@@ -93,6 +103,22 @@ async def upload_source(
             "private": True,
         }
     }
+    db.add(
+        AuditLog(
+            workspace_id=workspace.workspace.id,
+            user_id=workspace.auth.user.id,
+            action="source.media_uploaded",
+            entity_type="source",
+            entity_id=source.id,
+            details_json={
+                "kind": kind,
+                "filename": stored.filename,
+                "size": stored.size,
+                "content_type": stored.content_type,
+                "storage_backend": stored.backend,
+            },
+        )
+    )
     db.commit()
     db.refresh(source)
     return source
