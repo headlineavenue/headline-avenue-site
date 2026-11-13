@@ -27,6 +27,13 @@ def token_digest(value: str) -> str:
     return hashlib.sha256(value.encode("utf-8")).hexdigest()
 
 
+def csrf_token_for_session(session: UserSession) -> str:
+    # Stable per session so multiple tabs do not invalidate each other.
+    # Possession of this token alone does not authenticate a request because
+    # the HttpOnly session cookie is still required.
+    return token_digest(f"csrf:{session.token_hash}")
+
+
 def aware_utc(value: datetime) -> datetime:
     if value.tzinfo is None:
         return value.replace(tzinfo=timezone.utc)
