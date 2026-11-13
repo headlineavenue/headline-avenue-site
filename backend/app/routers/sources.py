@@ -1,10 +1,18 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
+from typing import Annotated, Literal
+
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from ..models import Source
-from ..schemas import SourceCreate, SourceOut
+from ..models import Source, Story
+from ..schemas import (
+    SourceCreate,
+    SourceLibraryItemOut,
+    SourceLibraryOut,
+    SourceOut,
+)
+from ..services.media_storage import store_upload
 from ..security import WorkspaceContext, get_workspace_context
 
 router = APIRouter(prefix="/sources", tags=["sources"])
@@ -29,6 +37,122 @@ def create_source(
     db.commit()
     db.refresh(source)
     return source
+
+
+@router.post("/upload", response_model=SourceOut, status_code=201)
+async def upload_source(
+    kind: Annotated[Literal["video", "audio", "pdf"], Form()],
+    file: Annotated[UploadFile, File()],
+    workspace: WorkspaceContext = Depends(get_workspace_context),
+    db: Session = Depends(get_db),
+) -> Source:
+    content_type = (file.content_type or "").lower()
+    if kind == "video" and not content_type.startswith("video/"):
+        raise HTTPException(status_code=400, detail="Expected a video upload")
+    if kind == "audio" and not content_type.startswith("audio/"):
+        raise HTTPException(status_code=400, detail="Expected an audio upload")
+    if kind == "pdf" and content_type != "application/pdf":
+        raise HTTPException(status_code=400, detail="Expected a PDF upload")
+
+    source = Source(
+        workspace_id=workspace.workspace.id,
+        kind=kind,
+        title=file.filename or f"{kind} upload",
+        metadata_json={},
+        status="uploading",
+    )
+    db.add(source)
+    db.commit()
+    db.refresh(source)
+
+    try:
+        stored = await store_upload(
+            file,
+            workspace_id=workspace.workspace.id,
+            source_id=source.id,
+        )
+    except ValueError as exc:
+        db.delete(source)
+        db.commit()
+        raise HTTPException(status_code=413, detail=str(exc)) from exc
+    except Exception as exc:
+        source.status = "upload_failed"
+        source.metadata_json = {"media": {"error": str(exc)}}
+        db.commit()
+        raise HTTPException(status_code=500, detail="Media upload failed") from exc
+
+    source.status = "uploaded"
+    source.metadata_json = {
+        "media": {
+            "backend": stored.backend,
+            "key": stored.key,
+            "filename": stored.filename,
+            "content_type": stored.content_type,
+            "size": stored.size,
+            "sha256": stored.sha256,
+            "private": True,
+        }
+    }
+    db.commit()
+    db.refresh(source)
+    return source
+
+
+@router.get("/library", response_model=SourceLibraryOut)
+def source_library(
+    workspace: WorkspaceContext = Depends(get_workspace_context),
+    db: Session = Depends(get_db),
+) -> SourceLibraryOut:
+    rows = db.execute(
+        select(
+            Source,
+            func.count(Story.id).label("story_count"),
+        )
+        .outerjoin(Story, Story.source_id == Source.id)
+        .where(Source.workspace_id == workspace.workspace.id)
+        .group_by(Source.id)
+        .order_by(Source.created_at.desc())
+    ).all()
+
+    items: list[SourceLibraryItemOut] = []
+    for source, story_count in rows:
+        media = dict((source.metadata_json or {}).get("media") or {})
+        items.append(
+            SourceLibraryItemOut(
+                id=source.id,
+                kind=source.kind,
+                title=source.title,
+                original_url=source.original_url,
+                status=source.status,
+                created_at=source.created_at,
+                story_count=int(story_count or 0),
+                has_transcript=bool(source.transcript_text),
+                storage_filename=media.get("filename"),
+                storage_size=media.get("size"),
+                content_type=media.get("content_type"),
+            )
+        )
+
+    indexed = sum(1 for item in items if item.status == "indexed")
+    uploaded = sum(1 for item in items if item.status in {"uploaded", "uploading"})
+    needs_attention = sum(
+        1
+        for item in items
+        if item.status
+        in {
+            "needs_content",
+            "needs_review",
+            "fetch_failed",
+            "upload_failed",
+        }
+    )
+    return SourceLibraryOut(
+        sources=items,
+        total=len(items),
+        indexed=indexed,
+        uploaded=uploaded,
+        needs_attention=needs_attention,
+    )
 
 
 @router.get("", response_model=list[SourceOut])
