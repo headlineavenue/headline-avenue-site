@@ -5,7 +5,7 @@ import secrets
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
-from fastapi import Depends, HTTPException, Request, status
+from fastapi import Depends, Header, HTTPException, Request, status
 from fastapi.security import APIKeyCookie
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -37,6 +37,13 @@ def aware_utc(value: datetime) -> datetime:
 class AuthContext:
     user: User
     session: UserSession
+
+
+@dataclass(frozen=True)
+class WorkspaceContext:
+    auth: AuthContext
+    workspace: Workspace
+    membership: WorkspaceMembership
 
 
 def get_auth_context(
@@ -108,3 +115,17 @@ def require_workspace(
     if not workspace:
         raise HTTPException(status_code=404, detail="Workspace not found")
     return workspace, membership
+
+
+def get_workspace_context(
+    workspace_id: str | None = Header(default=None, alias="X-Workspace-ID"),
+    auth: AuthContext = Depends(get_auth_context),
+    db: Session = Depends(get_db),
+) -> WorkspaceContext:
+    if not workspace_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="X-Workspace-ID header is required",
+        )
+    workspace, membership = require_workspace(workspace_id, auth, db)
+    return WorkspaceContext(auth=auth, workspace=workspace, membership=membership)
