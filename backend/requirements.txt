@@ -9,3 +9,4 @@ beautifulsoup4==4.13.4
 psycopg[binary]>=3.2,<4
 alembic>=1.14,<2
 pwdlib[argon2]>=0.2,<1
+email-validator>=2,<3
