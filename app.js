@@ -159,7 +159,7 @@
   let domReady = false;
   document.addEventListener("DOMContentLoaded", () => { domReady = true; }, { once: true });
 
-  const version = "20261113-0435";
+  const version = "20261113-0442";
   Promise.resolve(window.HeadlineAvenueAuthReady).then(() => Promise.all([
     nativeFetch(`app-core.js?v=${version}`, { cache: "no-store" }).then(r => {
       if (!r.ok) throw new Error("Could not load app-core.js");
