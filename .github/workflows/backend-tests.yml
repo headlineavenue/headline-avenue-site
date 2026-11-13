@@ -55,6 +55,7 @@ jobs:
           node --check runtime-config.js
           node --check auth.js
           node --check app.js
+          node --check real-stories.js
 
       - name: Run tests
         run: pytest -q
