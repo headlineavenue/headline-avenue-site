@@ -13,7 +13,13 @@ from sqlalchemy.orm import Session
 from ..config import get_settings
 from ..database import get_db
 from ..models import AuditLog, User, UserSession, Workspace, WorkspaceMembership
-from ..security import AuthContext, get_auth_context, require_csrf, token_digest
+from ..security import (
+    AuthContext,
+    csrf_token_for_session,
+    get_auth_context,
+    require_csrf,
+    token_digest,
+)
 
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -92,15 +98,17 @@ def _memberships(db: Session, user_id: str) -> list[WorkspaceMembershipOut]:
 
 def _issue_session(db: Session, user: User) -> tuple[str, str, UserSession]:
     session_token = secrets.token_urlsafe(48)
-    csrf_token = secrets.token_urlsafe(32)
+    session_hash = token_digest(session_token)
     now = datetime.now(timezone.utc)
     session = UserSession(
         user_id=user.id,
-        token_hash=token_digest(session_token),
-        csrf_hash=token_digest(csrf_token),
+        token_hash=session_hash,
+        csrf_hash="pending",
         expires_at=now + timedelta(days=settings.auth_session_days),
         last_seen_at=now,
     )
+    csrf_token = csrf_token_for_session(session)
+    session.csrf_hash = token_digest(csrf_token)
     db.add(session)
     db.flush()
     return session_token, csrf_token, session
@@ -222,8 +230,7 @@ def me(
     auth: AuthContext = Depends(get_auth_context),
     db: Session = Depends(get_db),
 ) -> AuthSessionOut:
-    csrf_token = secrets.token_urlsafe(32)
-    auth.session.csrf_hash = token_digest(csrf_token)
+    csrf_token = csrf_token_for_session(auth.session)
     auth.session.last_seen_at = datetime.now(timezone.utc)
     db.commit()
     return _session_payload(db, auth.user, csrf_token)
