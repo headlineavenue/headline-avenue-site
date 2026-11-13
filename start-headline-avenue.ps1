@@ -39,6 +39,14 @@ Write-Host 'HEADLINE AVENUE - BACKEND API' -ForegroundColor Green
 Start-Process powershell -ArgumentList "-NoExit", "-Command", $frontendCommand
 Start-Sleep -Milliseconds 600
 Start-Process powershell -ArgumentList "-NoExit", "-Command", $backendCommand
+Start-Sleep -Milliseconds 600
+
+$workerCommand = @"
+Set-Location '$Backend'
+Write-Host 'HEADLINE AVENUE - INGESTION WORKER' -ForegroundColor Yellow
+& '$Python' -m app.ingestion_worker
+"@
+Start-Process powershell -ArgumentList "-NoExit", "-Command", $workerCommand
 
 if ($WithTunnel) {
     $tunnelCommand = @"
@@ -56,6 +64,7 @@ Write-Host ""
 Write-Host "Local services opened:" -ForegroundColor Green
 Write-Host "  Frontend  -> http://localhost:5500/app.html"
 Write-Host "  Backend   -> http://127.0.0.1:8000"
+Write-Host "  Worker    -> queued media transcription"
 if ($WithTunnel) {
     Write-Host "  Tunnel    -> optional temporary HTTPS URL"
 }
