@@ -18,6 +18,10 @@ class Settings(BaseSettings):
     auth_session_days: int = 30
     auth_cookie_secure: bool = False
     auth_cookie_samesite: str = "lax"
+    auth_registration_enabled: bool = True
+    auth_bootstrap_owner_email: str = ""
+    auth_bootstrap_owner_password: str = ""
+    auth_bootstrap_owner_name: str = "Headline Avenue Owner"
     token_encryption_key: str = ""
 
     tiktok_client_key: str = ""
