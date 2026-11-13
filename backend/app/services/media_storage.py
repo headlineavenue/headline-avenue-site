@@ -148,3 +148,26 @@ async def store_upload(
     if backend in {"s3", "r2"}:
         return await _store_s3(upload, key)
     raise RuntimeError(f"Unsupported MEDIA_STORAGE_BACKEND: {backend}")
+
+
+def local_media_path(key: str) -> Path:
+    root = Path(settings.media_local_dir).expanduser().resolve()
+    path = (root / key).resolve()
+    if root != path and root not in path.parents:
+        raise ValueError("Invalid media storage path")
+    if not path.is_file():
+        raise FileNotFoundError(f"Stored media file not found: {key}")
+    return path
+
+
+def presigned_media_url(key: str, expires_seconds: int = 1800) -> str:
+    backend = settings.media_storage_backend.strip().lower()
+    if backend not in {"s3", "r2"}:
+        raise RuntimeError("Presigned URLs are only available for S3-compatible storage")
+
+    client = _s3_client()
+    return client.generate_presigned_url(
+        "get_object",
+        Params={"Bucket": settings.media_s3_bucket, "Key": key},
+        ExpiresIn=expires_seconds,
+    )
