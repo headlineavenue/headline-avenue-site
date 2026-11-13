@@ -143,3 +143,32 @@ def test_authenticated_mutation_requires_csrf() -> None:
             },
         )
         assert allowed.status_code == 201, allowed.text
+
+
+def test_me_does_not_invalidate_existing_csrf_token() -> None:
+    reset_database()
+    with TestClient(app) as client:
+        session = register(client, "tabs@example.com", "Tabs")
+        original_csrf = session["csrf_token"]
+        workspace_id = session["active_workspace_id"]
+
+        first_me = client.get("/api/v1/auth/me")
+        second_me = client.get("/api/v1/auth/me")
+        assert first_me.status_code == 200
+        assert second_me.status_code == 200
+        assert first_me.json()["csrf_token"] == original_csrf
+        assert second_me.json()["csrf_token"] == original_csrf
+
+        write = client.post(
+            "/api/v1/sources",
+            headers={
+                "X-Workspace-ID": workspace_id,
+                "X-CSRF-Token": original_csrf,
+            },
+            json={
+                "kind": "transcript",
+                "title": "Multi-tab safe source",
+                "transcript_text": "The original CSRF token remains valid after repeated session reads.",
+            },
+        )
+        assert write.status_code == 201, write.text
