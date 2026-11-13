@@ -1,30 +1,23 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from ..models import Source, Workspace
+from ..models import Source
 from ..schemas import SourceCreate, SourceOut
+from ..security import WorkspaceContext, get_workspace_context
 
 router = APIRouter(prefix="/sources", tags=["sources"])
 
 
-def get_or_create_workspace(db: Session, slug: str) -> Workspace:
-    workspace = db.scalar(select(Workspace).where(Workspace.slug == slug))
-    if workspace:
-        return workspace
-    workspace = Workspace(name=slug.replace("-", " ").title(), slug=slug)
-    db.add(workspace)
-    db.commit()
-    db.refresh(workspace)
-    return workspace
-
-
 @router.post("", response_model=SourceOut, status_code=201)
-def create_source(payload: SourceCreate, db: Session = Depends(get_db)) -> Source:
-    workspace = get_or_create_workspace(db, payload.workspace_slug)
+def create_source(
+    payload: SourceCreate,
+    workspace: WorkspaceContext = Depends(get_workspace_context),
+    db: Session = Depends(get_db),
+) -> Source:
     source = Source(
-        workspace_id=workspace.id,
+        workspace_id=workspace.workspace.id,
         kind=payload.kind,
         title=payload.title,
         original_url=str(payload.original_url) if payload.original_url else None,
@@ -40,19 +33,24 @@ def create_source(payload: SourceCreate, db: Session = Depends(get_db)) -> Sourc
 
 @router.get("", response_model=list[SourceOut])
 def list_sources(
-    workspace_slug: str = Query(default="demo"),
+    workspace: WorkspaceContext = Depends(get_workspace_context),
     db: Session = Depends(get_db),
 ) -> list[Source]:
-    workspace = db.scalar(select(Workspace).where(Workspace.slug == workspace_slug))
-    if not workspace:
-        return []
-    stmt = select(Source).where(Source.workspace_id == workspace.id).order_by(Source.created_at.desc())
+    stmt = (
+        select(Source)
+        .where(Source.workspace_id == workspace.workspace.id)
+        .order_by(Source.created_at.desc())
+    )
     return list(db.scalars(stmt))
 
 
 @router.get("/{source_id}", response_model=SourceOut)
-def get_source(source_id: str, db: Session = Depends(get_db)) -> Source:
+def get_source(
+    source_id: str,
+    workspace: WorkspaceContext = Depends(get_workspace_context),
+    db: Session = Depends(get_db),
+) -> Source:
     source = db.get(Source, source_id)
-    if not source:
+    if not source or source.workspace_id != workspace.workspace.id:
         raise HTTPException(status_code=404, detail="Source not found")
     return source
