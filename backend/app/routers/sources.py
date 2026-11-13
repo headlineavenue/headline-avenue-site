@@ -135,6 +135,21 @@ async def upload_source(
     return source
 
 
+@router.get("/transcription/config")
+def transcription_config(
+    workspace: WorkspaceContext = Depends(get_workspace_context),
+) -> dict[str, object]:
+    provider = settings.transcription_provider.strip().lower()
+    configured = bool(settings.deepgram_api_key) if provider == "deepgram" else False
+    return {
+        "provider": provider,
+        "configured": configured,
+        "model": settings.deepgram_model if provider == "deepgram" else None,
+        "language": settings.deepgram_language if provider == "deepgram" else None,
+        "diarization": bool(settings.deepgram_diarize) if provider == "deepgram" else False,
+    }
+
+
 @router.get("/library", response_model=SourceLibraryOut)
 def source_library(
     workspace: WorkspaceContext = Depends(get_workspace_context),
@@ -171,7 +186,17 @@ def source_library(
         )
 
     indexed = sum(1 for item in items if item.status == "indexed")
-    uploaded = sum(1 for item in items if item.status in {"uploaded", "uploading"})
+    uploaded = sum(
+        1
+        for item in items
+        if item.status
+        in {
+            "uploaded",
+            "uploading",
+            "transcription_queued",
+            "transcribing",
+        }
+    )
     needs_attention = sum(
         1
         for item in items
@@ -181,6 +206,7 @@ def source_library(
             "needs_review",
             "fetch_failed",
             "upload_failed",
+            "transcription_failed",
         }
     )
     return SourceLibraryOut(
