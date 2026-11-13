@@ -36,6 +36,28 @@ class SourceOut(ORMModel):
     created_at: datetime
 
 
+class SourceLibraryItemOut(BaseModel):
+    id: str
+    kind: str
+    title: str | None = None
+    original_url: str | None = None
+    status: str
+    created_at: datetime
+    story_count: int = 0
+    has_transcript: bool = False
+    storage_filename: str | None = None
+    storage_size: int | None = None
+    content_type: str | None = None
+
+
+class SourceLibraryOut(BaseModel):
+    sources: list[SourceLibraryItemOut]
+    total: int
+    indexed: int
+    uploaded: int
+    needs_attention: int
+
+
 class StoryCreate(BaseModel):
     workspace_slug: str = "demo"
     source_id: str
