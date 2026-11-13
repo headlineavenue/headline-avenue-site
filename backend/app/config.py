@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     auth_session_days: int = 30
     auth_cookie_secure: bool = False
     auth_cookie_samesite: str = "lax"
-    auth_registration_enabled: bool = True
+    auth_registration_enabled: bool | None = None
     auth_bootstrap_owner_email: str = ""
     auth_bootstrap_owner_password: str = ""
     auth_bootstrap_owner_name: str = "Headline Avenue Owner"
@@ -34,6 +34,12 @@ class Settings(BaseSettings):
     @property
     def cors_origin_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+
+    @property
+    def registration_enabled(self) -> bool:
+        if self.auth_registration_enabled is not None:
+            return self.auth_registration_enabled
+        return self.app_env.lower() != "production"
 
     @property
     def session_cookie_secure(self) -> bool:
