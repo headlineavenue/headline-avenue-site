@@ -144,22 +144,26 @@ def _ensure_platform_tenancy(bind) -> None:
         {"workspace_id": workspace_id},
     )
 
-    indexes = _index_info(bind, "platform_connections")
     unique_constraints = _unique_info(bind, "platform_connections")
-
-    for index in indexes:
-        if index.get("unique") and index.get("column_names") == ["provider"]:
-            op.drop_index(index["name"], table_name="platform_connections")
-
-    for constraint in unique_constraints:
-        if constraint.get("column_names") == ["provider"] and constraint.get("name"):
-            op.drop_constraint(
-                constraint["name"],
-                "platform_connections",
-                type_="unique",
-            )
-
     dialect = bind.dialect.name
+
+    # PostgreSQL exposes the backing index of a UNIQUE constraint through
+    # get_indexes(). Dropping that index directly fails because the constraint
+    # owns it. Drop reflected UNIQUE constraints first, then remove any
+    # standalone unique index left by older SQLAlchemy schemas.
+    if dialect != "sqlite":
+        for constraint in unique_constraints:
+            if constraint.get("column_names") == ["provider"] and constraint.get("name"):
+                op.drop_constraint(
+                    constraint["name"],
+                    "platform_connections",
+                    type_="unique",
+                )
+
+        for index in _index_info(bind, "platform_connections"):
+            if index.get("unique") and index.get("column_names") == ["provider"]:
+                op.drop_index(index["name"], table_name="platform_connections")
+
     if dialect == "sqlite":
         with op.batch_alter_table("platform_connections") as batch:
             batch.alter_column(
