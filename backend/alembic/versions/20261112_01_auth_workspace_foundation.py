@@ -8,6 +8,7 @@ Create Date: 2026-11-12
 from __future__ import annotations
 
 from uuid import uuid4
+from datetime import datetime, timezone
 
 from alembic import op
 import sqlalchemy as sa
@@ -131,7 +132,7 @@ def _ensure_platform_tenancy(bind) -> None:
                 "id": workspace_id,
                 "name": "Legacy Workspace",
                 "slug": f"legacy-{str(uuid4())[:8]}",
-                "created_at": sa.func.now(),
+                "created_at": datetime.now(timezone.utc),
             },
         )
 
