@@ -148,7 +148,9 @@ def tiktok_start(
             ),
         )
 
-    require_workspace(workspace_id, auth, db)
+    _workspace, membership = require_workspace(workspace_id, auth, db)
+    if membership.role != "owner":
+        raise HTTPException(status_code=403, detail="Workspace owner role is required to connect TikTok")
     state = f"{secrets.token_urlsafe(32)}:{workspace_id}"
     params = {
         "client_key": settings.tiktok_client_key,
@@ -200,7 +202,11 @@ async def tiktok_callback(
         response.delete_cookie(STATE_COOKIE)
         return response
 
-    workspace, _membership = require_workspace(workspace_id, auth, db)
+    workspace, membership = require_workspace(workspace_id, auth, db)
+    if membership.role != "owner":
+        response = _callback_page("error", "Workspace owner permission is required to connect TikTok.")
+        response.delete_cookie(STATE_COOKIE)
+        return response
 
     if not _configured():
         response = _callback_page(
@@ -308,6 +314,8 @@ async def tiktok_refresh(
     db: Session = Depends(get_db),
 ) -> dict:
     require_csrf(request, workspace.auth.session)
+    if workspace.membership.role not in {"owner", "editor"}:
+        raise HTTPException(status_code=403, detail="Editor role is required to refresh TikTok authorization")
     if not _configured():
         raise HTTPException(status_code=503, detail="TikTok OAuth is not configured")
     connection = _connection(db, workspace.workspace.id)
@@ -368,6 +376,8 @@ async def tiktok_disconnect(
     db: Session = Depends(get_db),
 ) -> dict:
     require_csrf(request, workspace.auth.session)
+    if workspace.membership.role != "owner":
+        raise HTTPException(status_code=403, detail="Workspace owner role is required to disconnect TikTok")
     connection = _connection(db, workspace.workspace.id)
     if not connection:
         return _status_payload(db, workspace.workspace.id)
