@@ -14,6 +14,7 @@ from ..services.editorial_intelligence import (
     build_editorial_variants,
 )
 from ..services.source_intelligence import build_story_angles, extract_source_text
+from ..security import WorkspaceContext, get_workspace_context
 
 
 router = APIRouter(prefix="/stories", tags=["editorial-intelligence"])
@@ -99,9 +100,9 @@ class EditorialApproveIn(BaseModel):
     approved_by: str = Field(default="editor", min_length=2, max_length=120)
 
 
-def _load_story_and_source(db: Session, story_id: str) -> tuple[Story, Source]:
+def _load_story_and_source(db: Session, story_id: str, workspace_id: str) -> tuple[Story, Source]:
     story = db.get(Story, story_id)
-    if not story:
+    if not story or story.workspace_id != workspace_id:
         raise HTTPException(status_code=404, detail="Story not found")
 
     source = db.get(Source, story.source_id)
@@ -282,9 +283,10 @@ def _persist_selection(
 def generate_editorial_variants(
     story_id: str,
     payload: EditorialGenerateIn,
+    workspace: WorkspaceContext = Depends(get_workspace_context),
     db: Session = Depends(get_db),
 ) -> EditorialGenerateOut:
-    story, source = _load_story_and_source(db, story_id)
+    story, source = _load_story_and_source(db, story_id, workspace.workspace.id)
     angle, source_text = _load_angle(story, source, payload.angle_rank)
     variants = build_editorial_variants(
         angle,
@@ -313,9 +315,10 @@ def generate_editorial_variants(
 def check_custom_headline(
     story_id: str,
     payload: EditorialCheckIn,
+    workspace: WorkspaceContext = Depends(get_workspace_context),
     db: Session = Depends(get_db),
 ) -> EditorialCheckOut:
-    story, source = _load_story_and_source(db, story_id)
+    story, source = _load_story_and_source(db, story_id, workspace.workspace.id)
     angle, source_text = _load_angle(story, source, payload.angle_rank)
 
     checked = build_custom_editorial_variant(
@@ -335,10 +338,11 @@ def check_custom_headline(
 @router.get("/{story_id}/editorial/gate", response_model=EditorialGateOut)
 def editorial_publish_gate(
     story_id: str,
+    workspace: WorkspaceContext = Depends(get_workspace_context),
     db: Session = Depends(get_db),
 ) -> EditorialGateOut:
     story = db.get(Story, story_id)
-    if not story:
+    if not story or story.workspace_id != workspace.workspace.id:
         raise HTTPException(status_code=404, detail="Story not found")
     return _gate_for_story(db, story)
 
@@ -347,11 +351,14 @@ def editorial_publish_gate(
 def approve_editorial_review(
     story_id: str,
     payload: EditorialApproveIn,
+    workspace: WorkspaceContext = Depends(get_workspace_context),
     db: Session = Depends(get_db),
 ) -> EditorialGateOut:
     story = db.get(Story, story_id)
-    if not story:
+    if not story or story.workspace_id != workspace.workspace.id:
         raise HTTPException(status_code=404, detail="Story not found")
+    if workspace.membership.role not in {"owner", "editor"}:
+        raise HTTPException(status_code=403, detail="Editor role is required to approve SourceGuard review")
 
     selection = _latest_editorial_selection(db, story.id)
     if not selection:
@@ -388,9 +395,10 @@ def approve_editorial_review(
 def select_editorial_variant(
     story_id: str,
     payload: EditorialSelectIn,
+    workspace: WorkspaceContext = Depends(get_workspace_context),
     db: Session = Depends(get_db),
 ) -> EditorialSelectionOut:
-    story, source = _load_story_and_source(db, story_id)
+    story, source = _load_story_and_source(db, story_id, workspace.workspace.id)
     angle, source_text = _load_angle(story, source, payload.angle_rank)
     variants = build_editorial_variants(
         angle,
@@ -416,9 +424,10 @@ def select_editorial_variant(
 def select_custom_editorial_variant(
     story_id: str,
     payload: EditorialCustomSelectIn,
+    workspace: WorkspaceContext = Depends(get_workspace_context),
     db: Session = Depends(get_db),
 ) -> EditorialSelectionOut:
-    story, source = _load_story_and_source(db, story_id)
+    story, source = _load_story_and_source(db, story_id, workspace.workspace.id)
     angle, source_text = _load_angle(story, source, payload.angle_rank)
 
     selected = build_custom_editorial_variant(
