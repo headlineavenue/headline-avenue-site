@@ -172,3 +172,18 @@ def test_me_does_not_invalidate_existing_csrf_token() -> None:
             },
         )
         assert write.status_code == 201, write.text
+
+
+def test_custom_domain_cors_allows_credentials() -> None:
+    reset_database()
+    with TestClient(app) as client:
+        response = client.options(
+            "/api/v1/auth/me",
+            headers={
+                "Origin": "https://headlineavenue.com",
+                "Access-Control-Request-Method": "GET",
+            },
+        )
+        assert response.status_code == 200, response.text
+        assert response.headers["access-control-allow-origin"] == "https://headlineavenue.com"
+        assert response.headers["access-control-allow-credentials"] == "true"
