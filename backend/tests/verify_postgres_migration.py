@@ -86,6 +86,9 @@ def migrate() -> None:
     env["DATABASE_URL"] = DATABASE_URL
     env["APP_ENV"] = "test"
     env["TOKEN_ENCRYPTION_KEY"] = "vP3YScmTVY-fyL7pLvsoGNNJV0iA0Qvj60p6UfLSCK4="
+    env["AUTH_BOOTSTRAP_OWNER_EMAIL"] = "owner@headlineavenue.test"
+    env["AUTH_BOOTSTRAP_OWNER_PASSWORD"] = "migration-test-owner-password"
+    env["AUTH_BOOTSTRAP_OWNER_NAME"] = "Headline Avenue Owner"
 
     subprocess.run(
         [sys.executable, "-m", "app.bootstrap_db"],
@@ -99,6 +102,11 @@ def migrate() -> None:
     )
     subprocess.run(
         [sys.executable, "-m", "app.encrypt_legacy_tokens"],
+        check=True,
+        env=env,
+    )
+    subprocess.run(
+        [sys.executable, "-m", "app.bootstrap_owner"],
         check=True,
         env=env,
     )
@@ -153,6 +161,21 @@ def verify() -> None:
         duplicate_blocked = True
 
     assert duplicate_blocked, "Expected per-workspace provider uniqueness constraint"
+
+    owner_workspace = scalar(
+        """
+        SELECT wm.workspace_id
+        FROM workspace_memberships wm
+        JOIN users u ON u.id = wm.user_id
+        WHERE u.email = 'owner@headlineavenue.test' AND wm.role = 'owner'
+        """
+    )
+    assert owner_workspace == LEGACY_WORKSPACE_ID, owner_workspace
+
+    owner_count = scalar(
+        "SELECT COUNT(*) FROM users WHERE email = 'owner@headlineavenue.test'"
+    )
+    assert owner_count == 1
 
     revision = scalar("SELECT version_num FROM alembic_version")
     assert revision == "20261112_01", revision
