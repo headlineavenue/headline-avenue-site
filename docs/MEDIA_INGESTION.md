@@ -57,3 +57,54 @@ This state distinction prevents the UI from claiming that an uploaded file has b
 4. PDF text extraction
 5. update Source to `indexed`
 6. enable Story creation from processed media
+
+
+## Speech-to-text provider
+
+The current provider is Deepgram Nova-3 because Headline Avenue needs timestamped, speaker-aware transcripts for interview and video workflows.
+
+Configuration:
+
+```text
+TRANSCRIPTION_PROVIDER=deepgram
+DEEPGRAM_API_KEY=<secret>
+DEEPGRAM_MODEL=nova-3
+DEEPGRAM_LANGUAGE=multi
+DEEPGRAM_DIARIZE=true
+```
+
+Do not expose the API key in frontend JavaScript. It belongs only in the backend/worker environment.
+
+The browser does not call the provider directly. The flow is:
+
+```text
+POST /sources/{id}/transcribe
+  -> ingestion_jobs.status = queued
+  -> worker claims job
+  -> Source.status = transcribing
+  -> private media is sent to provider
+  -> transcript_text + timestamped speaker segments are persisted
+  -> Source.status = indexed
+  -> Story creation becomes available
+```
+
+## Transcript storage
+
+The full readable transcript remains on `sources.transcript_text`.
+
+Timestamped units are stored separately in `source_transcript_segments`:
+
+- sequence
+- start_ms
+- end_ms
+- speaker
+- text
+- confidence
+
+This avoids returning a huge timestamp payload every time the Source row is loaded while preserving the evidence trail needed for clip selection and later subtitle work.
+
+## Worker deployment
+
+Local development starts `python -m app.ingestion_worker` in a separate PowerShell window.
+
+Production should run the same module as a separate Railway worker service against the same PostgreSQL database and private object-storage credentials. The web API only queues jobs; it should not perform long transcription calls inside request handlers.
