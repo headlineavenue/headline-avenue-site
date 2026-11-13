@@ -97,7 +97,6 @@ class EditorialGateOut(BaseModel):
 
 class EditorialApproveIn(BaseModel):
     note: str = Field(min_length=5, max_length=500)
-    approved_by: str = Field(default="editor", min_length=2, max_length=120)
 
 
 def _load_story_and_source(db: Session, story_id: str, workspace_id: str) -> tuple[Story, Source]:
@@ -373,7 +372,8 @@ def approve_editorial_review(
     content = dict(selection.content_json or {})
     content["editorial_approval"] = {
         "status": "approved",
-        "approved_by": payload.approved_by.strip(),
+        "approved_by": workspace.auth.user.display_name,
+        "approved_by_user_id": workspace.auth.user.id,
         "note": payload.note.strip(),
         "approved_at": datetime.now(timezone.utc).isoformat(),
         "sourceguard_status_at_approval": content.get("sourceguard_status"),
