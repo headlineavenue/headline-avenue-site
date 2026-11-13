@@ -144,6 +144,12 @@ def register(
     response: Response,
     db: Session = Depends(get_db),
 ) -> AuthSessionOut:
+    if not settings.auth_registration_enabled:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Public registration is not enabled",
+        )
+
     email = _normalize_email(str(payload.email))
     existing = db.scalar(select(User.id).where(User.email == email))
     if existing:
