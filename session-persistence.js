@@ -230,6 +230,15 @@ document.addEventListener("DOMContentLoaded", () => {
     }, true);
   });
 
+  function restoreNavigationView() {
+    const view = String(bootState?.activeView || "").trim();
+    if (!view || view === "workspace" || view === "home") return false;
+    const button = document.querySelector(`.app-nav button[data-view="${CSS.escape(view)}"]`);
+    if (!button) return false;
+    button.click();
+    return true;
+  }
+
   const startObservers = () => {
     const root = document.querySelector("main") || document.body;
     const observer = new MutationObserver(() => scheduleCapture());
@@ -238,5 +247,9 @@ document.addEventListener("DOMContentLoaded", () => {
     window.addEventListener("beforeunload", captureWorkspaceState);
   };
 
-  restoreWorkspace().finally(startObservers);
+  restoreWorkspace()
+    .then(restoredWorkspace => {
+      if (!restoredWorkspace) restoreNavigationView();
+    })
+    .finally(startObservers);
 });

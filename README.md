@@ -2,121 +2,109 @@
 
 Headline Avenue is a source-first editorial intelligence and publishing workspace for fast-moving media.
 
-The public GitHub Pages site contains the marketing site and polished product demo. The repository now also contains the first real backend foundation for the product.
+## Current architecture
+
+```text
+Browser app
+  → authenticated workspace
+    → Source
+      → Story
+        → Evidence / SourceGuard
+          → Story Pack outputs
+            → Publishing jobs
+```
+
+Public infrastructure:
+
+- marketing/product frontend: GitHub Pages today; planned apex domain `https://headlineavenue.com`
+- permanent API domain: `https://api.headlineavenue.com`
+- backend: Railway / FastAPI
+- database: Railway PostgreSQL
+- TikTok: Login Kit sandbox connected; Production review pending
+
+See `docs/ARCHITECTURE.md` and `docs/AUTHENTICATION.md`.
 
 ## Public pages
 
 - `index.html` — marketing site
-- `app.html` — product demo
+- `app.html` — product application
 - `privacy.html` — privacy policy
 - `terms.html` — terms of service
 - `data-deletion.html` — data deletion instructions
 - `contact.html` — contact information
 
-## Product architecture
-
-Headline Avenue follows a source-first model:
-
-```text
-Source
-  → Story
-    → Evidence / SourceGuard
-    → Story Pack outputs
-      → Publishing jobs
-        → Analytics
-          → Radar intelligence
-```
-
-See `docs/ARCHITECTURE.md` for the full architecture.
-
-## Frontend
-
-Static HTML, CSS, and JavaScript, designed for GitHub Pages with no build step.
-
-Expected public site:
-
-`https://headlineavenue.github.io/headline-avenue-site/`
-
 ## Backend
 
-The first API foundation lives in `backend/`.
-
-Current stack:
+The backend lives in `backend/` and currently includes:
 
 - FastAPI
 - SQLAlchemy 2
-- Pydantic
-- SQLite for zero-friction development
-- PostgreSQL-ready through `DATABASE_URL`
+- PostgreSQL in hosted production
+- SQLite for local development
+- Alembic migrations
+- server-side user sessions and workspace memberships on the auth feature branch
+- Sources, Stories and Evidence
+- source-grounded editorial intelligence
+- SourceGuard gates and editor approval
+- Story Pack records
+- controlled publishing preflight/jobs
+- TikTok OAuth with workspace-scoped provider connections on the auth feature branch
 
-Current API foundations cover:
+## Run locally
 
-- workspaces
-- sources
-- stories
-- evidence
-- SourceGuard checks
-- Story Pack output records
-- publishing-job data model
+The local browser uses the local API automatically.
 
-### Run locally
-
-```powershell
-cd backend
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-Copy-Item .env.example .env
-uvicorn app.main:app --reload
-```
-
-Then open:
-
-- API: `http://127.0.0.1:8000`
-- Swagger: `http://127.0.0.1:8000/docs`
-- Health: `http://127.0.0.1:8000/health`
-
-## Development principle
-
-The current product demo must remain visually polished while backend functionality is introduced incrementally. Real data should replace prototype data one workflow at a time rather than rewriting the whole interface at once.
-
-
-## Run the full product locally
-
-The public GitHub Pages app stays in prototype mode. For the first real end-to-end workflow, run both the API and the static frontend locally.
-
-### Terminal 1 — API
+First update dependencies:
 
 ```powershell
 cd $HOME\Documents\headline-avenue-site\backend
-.\.venv\Scripts\Activate.ps1
-uvicorn app.main:app --reload
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
 ```
 
-### Terminal 2 — frontend
+Then launch from the repository root:
 
 ```powershell
 cd $HOME\Documents\headline-avenue-site
-python -m http.server 5500
+powershell -ExecutionPolicy Bypass -File .\start-headline-avenue.ps1
 ```
 
-Open:
+This opens:
 
-`http://localhost:5500/app.html`
+- frontend: `http://localhost:5500/app.html`
+- backend: `http://127.0.0.1:8000`
 
-When the app is opened from localhost, Create uses the real API at `http://127.0.0.1:8000`:
+A Cloudflare quick tunnel is no longer required for ordinary development. Use the optional tunnel only for a provider flow that specifically needs a public callback:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\start-headline-avenue.ps1 -WithTunnel
+```
+
+## Real workflow today
 
 ```text
-Create
-  → POST Source
-  → POST Story
-  → open Story Workspace
-  → Generate Story Pack
-  → POST persisted Story Outputs
+Create Source
+  → create Story
+  → analyze indexed source text
+  → generate/select editorial headline
+  → SourceGuard / editor gate
+  → generate Story Pack records
+  → create Publish draft
+  → run preflight
+  → create controlled backend publishing jobs
 ```
 
-The GitHub Pages version intentionally remains prototype-only so an HTTPS public page never depends on an insecure localhost HTTP request.
+The hosted public application already talks to the permanent backend. Some product areas such as Radar, Analytics and actual media rendering still contain prototype layers and should not be presented as fully implemented.
 
-### Current limitation
+## Next product milestone
 
-Video/audio/PDF selections create real source records and metadata, but the binary files themselves are not uploaded yet. URL, article, and pasted-transcript records persist normally. Object storage and real media ingestion come next.
+After the authentication/workspace branch is validated and deployed safely:
+
+1. real binary media upload/object storage
+2. asynchronous transcription/extraction with timestamps
+3. real Story Pack content generation
+4. TikTok Content Posting adapter behind an approval/feature gate
+5. first pilot users
+
+## Current media limitation
+
+URL, article and pasted-transcript sources can persist and be analyzed. Video/audio/PDF selections can create source metadata, but binary media storage, transcription and rendering are the next implementation layer.

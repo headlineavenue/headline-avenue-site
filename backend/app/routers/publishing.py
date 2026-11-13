@@ -10,7 +10,8 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from ..models import PublishingJob, Source, Story, StoryOutput
+from ..models import AuditLog, PublishingJob, Source, Story, StoryOutput
+from ..security import WorkspaceContext, get_workspace_context
 
 
 router = APIRouter(prefix="/publishing", tags=["publishing"])
@@ -153,9 +154,12 @@ def _draft_from_output(output: StoryOutput) -> PublishDraftOut:
     )
 
 
-def _get_publish_draft(db: Session, draft_id: str) -> StoryOutput:
+def _get_publish_draft(db: Session, draft_id: str, workspace_id: str) -> StoryOutput:
     draft = db.get(StoryOutput, draft_id)
     if not draft or draft.output_type != "publish_draft":
+        raise HTTPException(status_code=404, detail="Publish draft not found")
+    story = db.get(Story, draft.story_id)
+    if not story or story.workspace_id != workspace_id:
         raise HTTPException(status_code=404, detail="Publish draft not found")
     return draft
 
@@ -350,9 +354,13 @@ def _preflight(db: Session, draft: StoryOutput, payload: PublishPlanIn) -> Publi
 
 
 @router.post("/drafts/from-story/{story_id}", response_model=PublishDraftOut, status_code=201)
-def create_publish_draft(story_id: str, db: Session = Depends(get_db)) -> PublishDraftOut:
+def create_publish_draft(
+    story_id: str,
+    workspace: WorkspaceContext = Depends(get_workspace_context),
+    db: Session = Depends(get_db),
+) -> PublishDraftOut:
     story = db.get(Story, story_id)
-    if not story:
+    if not story or story.workspace_id != workspace.workspace.id:
         raise HTTPException(status_code=404, detail="Story not found")
 
     selection = _latest_editorial_selection(db, story.id)
@@ -402,9 +410,13 @@ def create_publish_draft(story_id: str, db: Session = Depends(get_db)) -> Publis
 
 
 @router.get("/drafts/{story_id}", response_model=PublishDraftOut)
-def get_latest_publish_draft(story_id: str, db: Session = Depends(get_db)) -> PublishDraftOut:
+def get_latest_publish_draft(
+    story_id: str,
+    workspace: WorkspaceContext = Depends(get_workspace_context),
+    db: Session = Depends(get_db),
+) -> PublishDraftOut:
     story = db.get(Story, story_id)
-    if not story:
+    if not story or story.workspace_id != workspace.workspace.id:
         raise HTTPException(status_code=404, detail="Story not found")
 
     draft = (
@@ -419,14 +431,26 @@ def get_latest_publish_draft(story_id: str, db: Session = Depends(get_db)) -> Pu
 
 
 @router.post("/drafts/{draft_id}/preflight", response_model=PublishPreflightOut)
-def preflight_publish_draft(draft_id: str, payload: PublishPlanIn, db: Session = Depends(get_db)) -> PublishPreflightOut:
-    draft = _get_publish_draft(db, draft_id)
+def preflight_publish_draft(
+    draft_id: str,
+    payload: PublishPlanIn,
+    workspace: WorkspaceContext = Depends(get_workspace_context),
+    db: Session = Depends(get_db),
+) -> PublishPreflightOut:
+    draft = _get_publish_draft(db, draft_id, workspace.workspace.id)
     return _preflight(db, draft, payload)
 
 
 @router.post("/drafts/{draft_id}/dispatch", response_model=PublishDispatchOut, status_code=201)
-def dispatch_publish_draft(draft_id: str, payload: PublishDispatchIn, db: Session = Depends(get_db)) -> PublishDispatchOut:
-    draft = _get_publish_draft(db, draft_id)
+def dispatch_publish_draft(
+    draft_id: str,
+    payload: PublishDispatchIn,
+    workspace: WorkspaceContext = Depends(get_workspace_context),
+    db: Session = Depends(get_db),
+) -> PublishDispatchOut:
+    draft = _get_publish_draft(db, draft_id, workspace.workspace.id)
+    if workspace.membership.role not in {"owner", "editor"}:
+        raise HTTPException(status_code=403, detail="Editor role is required to dispatch publishing jobs")
     if not payload.confirmed:
         raise HTTPException(status_code=409, detail="Final confirmation is required before distribution jobs can be created")
 
@@ -482,6 +506,21 @@ def dispatch_publish_draft(draft_id: str, payload: PublishDispatchIn, db: Sessio
     if story:
         story.status = "scheduled" if status == "scheduled" else "queued_for_publish"
 
+    db.add(
+        AuditLog(
+            workspace_id=workspace.workspace.id,
+            user_id=workspace.auth.user.id,
+            action="publishing.dispatch_created",
+            entity_type="story_output",
+            entity_id=dispatch.id,
+            details_json={
+                "story_id": draft.story_id,
+                "destinations": preflight.destinations,
+                "mode": preflight.mode,
+                "fingerprint": preflight.fingerprint,
+            },
+        )
+    )
     db.commit()
     db.refresh(dispatch)
     for job in jobs:
@@ -509,9 +548,13 @@ def dispatch_publish_draft(draft_id: str, payload: PublishDispatchIn, db: Sessio
 
 
 @router.get("/jobs/{story_id}", response_model=PublishJobsOut)
-def get_publish_jobs(story_id: str, db: Session = Depends(get_db)) -> PublishJobsOut:
+def get_publish_jobs(
+    story_id: str,
+    workspace: WorkspaceContext = Depends(get_workspace_context),
+    db: Session = Depends(get_db),
+) -> PublishJobsOut:
     story = db.get(Story, story_id)
-    if not story:
+    if not story or story.workspace_id != workspace.workspace.id:
         raise HTTPException(status_code=404, detail="Story not found")
 
     rows = (

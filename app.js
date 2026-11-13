@@ -13,20 +13,8 @@
     publishDraft: null
   };
 
-  // One API configuration for both local development and the live site.
-  // Local PowerShell runs keep using the local FastAPI server; every hosted
-  // frontend uses the permanent Railway backend.
-  const localHosts = new Set(["localhost", "127.0.0.1"]);
-  const isLocalFrontend = localHosts.has(window.location.hostname);
-  const apiOrigin = isLocalFrontend
-    ? "http://127.0.0.1:8000"
-    : "https://headline-avenue-site-production.up.railway.app";
-  window.HeadlineAvenueConfig = Object.freeze({
-    apiOrigin,
-    apiBase: `${apiOrigin}/api/v1`,
-    isLocal: isLocalFrontend,
-    frontendOrigin: window.location.origin
-  });
+  const config = window.HeadlineAvenueConfig;
+  if (!config) throw new Error("Headline Avenue runtime configuration is missing");
 
   // Publish desk UX polish: keep the desktop right rail together as one sticky
   // viewport-height unit. The timeline gets its own fixed grid row beneath the
@@ -100,7 +88,36 @@
     document.head.appendChild(style);
   }
 
-  const nativeFetch = window.fetch.bind(window);
+  const browserFetch = window.fetch.bind(window);
+
+  // Centralize authentication so every existing product module automatically
+  // receives the active workspace, secure session cookie, and CSRF token.
+  const nativeFetch = async (input, init = {}) => {
+    const inputUrl = typeof input === "string" ? input : input?.url || "";
+    const url = new URL(inputUrl, window.location.href);
+    const options = { ...init };
+
+    if (url.origin === config.apiOrigin) {
+      const headers = new Headers(
+        typeof input !== "string" && input?.headers ? input.headers : undefined
+      );
+      new Headers(init.headers || {}).forEach((value, key) => headers.set(key, value));
+
+      const auth = window.HeadlineAvenueAuth;
+      const method = String(options.method || input?.method || "GET").toUpperCase();
+      if (auth?.activeWorkspaceId) {
+        headers.set("X-Workspace-ID", auth.activeWorkspaceId);
+      }
+      if (!["GET", "HEAD", "OPTIONS"].includes(method) && auth?.csrfToken) {
+        headers.set("X-CSRF-Token", auth.csrfToken);
+      }
+
+      options.headers = headers;
+      options.credentials = "include";
+    }
+
+    return browserFetch(input, options);
+  };
   window.__haNativeFetch = nativeFetch;
 
   // Observe the real API records created by the existing Create workflow so
@@ -142,10 +159,14 @@
   let domReady = false;
   document.addEventListener("DOMContentLoaded", () => { domReady = true; }, { once: true });
 
-  const version = "20261109-2005";
-  Promise.all([
+  const version = "20261113-0442";
+  Promise.resolve(window.HeadlineAvenueAuthReady).then(() => Promise.all([
     nativeFetch(`app-core.js?v=${version}`, { cache: "no-store" }).then(r => {
       if (!r.ok) throw new Error("Could not load app-core.js");
+      return r.text();
+    }),
+    nativeFetch(`real-stories.js?v=${version}`, { cache: "no-store" }).then(r => {
+      if (!r.ok) throw new Error("Could not load real-stories.js");
       return r.text();
     }),
     nativeFetch(`session-persistence.js?v=${version}`, { cache: "no-store" }).then(r => {
@@ -188,8 +209,9 @@
       if (!r.ok) throw new Error("Could not load publish-accounts.js");
       return r.text();
     })
-  ]).then(([core, persistence, intelligence, editorial, gating, restore, storyPackSync, publishBridge, publishRecovery, publishPipeline, publishAccounts]) => {
+  ])).then(([core, realStories, persistence, intelligence, editorial, gating, restore, storyPackSync, publishBridge, publishRecovery, publishPipeline, publishAccounts]) => {
     (0, eval)(core);
+    (0, eval)(realStories);
     (0, eval)(persistence);
     (0, eval)(intelligence);
     (0, eval)(editorial);

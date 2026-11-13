@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models import Story, StoryOutput
 from ..schemas import StoryOutputOut, StoryPackGenerate, StoryPackOut
+from ..security import WorkspaceContext, get_workspace_context
 
 router = APIRouter(prefix="/story-packs", tags=["story-packs"])
 
@@ -21,9 +22,13 @@ def _latest_editorial_selection(db: Session, story_id: str) -> StoryOutput | Non
 
 
 @router.post("/generate", response_model=StoryPackOut, status_code=201)
-def generate_story_pack(payload: StoryPackGenerate, db: Session = Depends(get_db)) -> StoryPackOut:
+def generate_story_pack(
+    payload: StoryPackGenerate,
+    workspace: WorkspaceContext = Depends(get_workspace_context),
+    db: Session = Depends(get_db),
+) -> StoryPackOut:
     story = db.get(Story, payload.story_id)
-    if not story:
+    if not story or story.workspace_id != workspace.workspace.id:
         raise HTTPException(status_code=404, detail="Story not found")
 
     editorial = _latest_editorial_selection(db, story.id)

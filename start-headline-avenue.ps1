@@ -1,3 +1,7 @@
+param(
+    [switch]$WithTunnel
+)
+
 $ErrorActionPreference = "Stop"
 
 $Root = $PSScriptRoot
@@ -13,12 +17,12 @@ if (-not (Test-Path $Python)) {
     exit 1
 }
 
-if (-not (Get-Command cloudflared -ErrorAction SilentlyContinue)) {
+if ($WithTunnel -and -not (Get-Command cloudflared -ErrorAction SilentlyContinue)) {
     Write-Host "cloudflared is not installed or is not on PATH." -ForegroundColor Red
     exit 1
 }
 
-Write-Host "Starting Headline Avenue..." -ForegroundColor Cyan
+Write-Host "Starting Headline Avenue local development..." -ForegroundColor Cyan
 
 $frontendCommand = @"
 Set-Location '$Root'
@@ -32,26 +36,29 @@ Write-Host 'HEADLINE AVENUE - BACKEND API' -ForegroundColor Green
 & '$Python' -m uvicorn app.main:app --reload
 "@
 
-$tunnelCommand = @"
-Write-Host 'HEADLINE AVENUE - CLOUDFLARE TUNNEL' -ForegroundColor Magenta
-Write-Host 'Copy the https://....trycloudflare.com URL shown below.' -ForegroundColor Yellow
-cloudflared tunnel --url http://127.0.0.1:8000
-"@
-
 Start-Process powershell -ArgumentList "-NoExit", "-Command", $frontendCommand
 Start-Sleep -Milliseconds 600
 Start-Process powershell -ArgumentList "-NoExit", "-Command", $backendCommand
-Start-Sleep -Milliseconds 1000
-Start-Process powershell -ArgumentList "-NoExit", "-Command", $tunnelCommand
+
+if ($WithTunnel) {
+    $tunnelCommand = @"
+Write-Host 'HEADLINE AVENUE - OPTIONAL CLOUDFLARE TUNNEL' -ForegroundColor Magenta
+cloudflared tunnel --url http://127.0.0.1:8000
+"@
+    Start-Sleep -Milliseconds 800
+    Start-Process powershell -ArgumentList "-NoExit", "-Command", $tunnelCommand
+}
 
 Start-Sleep -Seconds 2
 Start-Process "http://localhost:5500/app.html"
 
 Write-Host ""
-Write-Host "Three PowerShell windows were opened:" -ForegroundColor Green
+Write-Host "Local services opened:" -ForegroundColor Green
 Write-Host "  Frontend  -> http://localhost:5500/app.html"
 Write-Host "  Backend   -> http://127.0.0.1:8000"
-Write-Host "  Tunnel    -> copy its new HTTPS URL"
+if ($WithTunnel) {
+    Write-Host "  Tunnel    -> optional temporary HTTPS URL"
+}
 Write-Host ""
-Write-Host "Reminder: a Quick Tunnel gets a new hostname after restart." -ForegroundColor Yellow
-Write-Host "Update TIKTOK_REDIRECT_URI and the TikTok Sandbox redirect URI before OAuth testing." -ForegroundColor Yellow
+Write-Host "The production API remains https://api.headlineavenue.com." -ForegroundColor DarkGray
+Write-Host "Use -WithTunnel only when a provider callback specifically needs a temporary public local URL." -ForegroundColor DarkGray

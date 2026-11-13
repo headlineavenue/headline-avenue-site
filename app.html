@@ -3,10 +3,12 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#02050a">
-<title>Headline Avenue — Product Demo</title>
+<title>Headline Avenue — Editorial OS</title>
 <link rel="icon" href="assets/headline-avenue-logo.png" type="image/png">
 <link rel="stylesheet" href="app.css?v=20260910-0130">
-<script defer src="app.js?v=20261109-2005"></script>
+<script defer src="runtime-config.js?v=20261113-0435"></script>
+<script defer src="auth.js?v=20261113-0435"></script>
+<script defer src="app.js?v=20261113-0442"></script>
 </head>
 <body>
 <div class="app-shell">
@@ -20,12 +22,12 @@
       <button data-view="publish">↗ <span>Publish</span></button>
       <button data-view="analytics">⌁ <span>Analytics</span></button>
     </nav>
-    <div class="app-side-bottom"><span class="status-dot"></span> Demo workspace<br><a href="index.html">← Marketing site</a></div>
+    <div class="app-side-bottom"><span class="status-dot"></span> Secure workspace<br><a href="index.html">← Marketing site</a></div>
   </aside>
 
   <main class="app-main">
     <header class="app-top">
-      <div><span class="app-breadcrumb">HEADLINE AVENUE / PRODUCT DEMO</span><h1 id="view-title">Radar</h1></div>
+      <div><span class="app-breadcrumb">HEADLINE AVENUE / EDITORIAL OS</span><h1 id="view-title">Radar</h1></div>
       <div class="app-user"><span>HA</span><div><b>Headline Avenue</b><small>Creator workspace</small></div></div>
     </header>
 
@@ -311,18 +313,18 @@
       </div>
 
       <div class="desk-metrics">
-        <article><span>ACTIVE STORIES</span><strong>12</strong><small>3 updated today</small></article>
-        <article><span>NEEDS REVIEW</span><strong class="metric-gold">4</strong><small>SourceGuard or copy</small></article>
-        <article><span>STORY PACKS</span><strong>27</strong><small>Across 8 stories</small></article>
-        <article><span>SCHEDULED</span><strong class="metric-green">8</strong><small>Next 24 hours</small></article>
+        <article><span>ACTIVE STORIES</span><strong id="story-metric-active">—</strong><small>Workspace-backed</small></article>
+        <article><span>NEEDS REVIEW</span><strong class="metric-gold" id="story-metric-review">—</strong><small>SourceGuard or copy</small></article>
+        <article><span>GENERATED ASSETS</span><strong id="story-metric-packs">—</strong><small>Persisted Story Pack outputs</small></article>
+        <article><span>SCHEDULED</span><strong class="metric-green" id="story-metric-scheduled">—</strong><small>Publishing queue</small></article>
       </div>
 
       <div class="story-desk-toolbar">
         <div class="story-tabs" role="tablist" aria-label="Story status">
-          <button class="active" data-story-tab="all">All <span>12</span></button>
-          <button data-story-tab="active">Active <span>5</span></button>
-          <button data-story-tab="review">Needs review <span>4</span></button>
-          <button data-story-tab="scheduled">Scheduled <span>3</span></button>
+          <button class="active" data-story-tab="all">All <span id="story-tab-all-count">—</span></button>
+          <button data-story-tab="active">Active <span id="story-tab-active-count">—</span></button>
+          <button data-story-tab="review">Needs review <span id="story-tab-review-count">—</span></button>
+          <button data-story-tab="scheduled">Scheduled <span id="story-tab-scheduled-count">—</span></button>
         </div>
         <div class="story-tools">
           <label class="story-search"><span>⌕</span><input id="story-search-input" type="search" placeholder="Search stories or sources"></label>
@@ -331,6 +333,7 @@
             <option value="entertainment">Entertainment</option>
             <option value="technology">Technology</option>
             <option value="sports">Sports</option>
+            <option value="general">General</option>
           </select>
           <select id="story-sort" aria-label="Sort stories">
             <option value="updated">Recently updated</option>
@@ -347,59 +350,11 @@
           </div>
 
           <div id="stories-list" class="story-table">
-            <article class="newsroom-row" tabindex="0" data-source-kind="video" data-status="active" data-topic="entertainment" data-score="95" data-title="Tom Holland on why Tobey and Andrew's suits were better" data-source="IMDb interview">
-              <div class="story-cell-main"><span class="story-signal high">95</span><div><b>Tom Holland on why Tobey & Andrew's suits were better</b><small>Updated 18 min ago · Entertainment</small></div></div>
-              <div class="source-cell"><b>IMDb interview</b><small>Video · 47:12</small></div>
-              <div><span class="desk-status active">Active</span></div>
-              <div><span class="guard-badge pass">✓ Supported</span></div>
-              <div class="output-count"><b>7</b><small>assets</small></div>
-              <div><span class="publish-state drafting">Drafting</span></div>
-              <div><button class="row-action" data-open-story data-story-title="Tom Holland on why Tobey & Andrew's suits were better" data-story-source="IMDb interview · 47:12">Open →</button></div>
-            </article>
-
-            <article class="newsroom-row" tabindex="0" data-source-kind="video" data-status="review" data-topic="technology" data-score="92" data-title="AI product announcement accelerates across platforms" data-source="Official keynote">
-              <div class="story-cell-main"><span class="story-signal">92</span><div><b>AI product announcement accelerates across platforms</b><small>Updated 43 min ago · Technology</small></div></div>
-              <div class="source-cell"><b>Official keynote</b><small>Video · 31:08</small></div>
-              <div><span class="desk-status review">Needs review</span></div>
-              <div><span class="guard-badge warn">! 1 flag</span></div>
-              <div class="output-count"><b>4</b><small>assets</small></div>
-              <div><span class="publish-state holding">On hold</span></div>
-              <div><button class="row-action" data-open-story data-story-title="AI product announcement accelerates across platforms" data-story-source="Official keynote · 31:08">Review →</button></div>
-            </article>
-
-            <article class="newsroom-row" tabindex="0" data-source-kind="video" data-status="scheduled" data-topic="sports" data-score="89" data-title="Major sports interview produces a breakout quote" data-source="Post-game interview">
-              <div class="story-cell-main"><span class="story-signal">89</span><div><b>Major sports interview produces a breakout quote</b><small>Updated 1 hr ago · Sports</small></div></div>
-              <div class="source-cell"><b>Post-game interview</b><small>Video · 14:41</small></div>
-              <div><span class="desk-status scheduled">Scheduled</span></div>
-              <div><span class="guard-badge pass">✓ Supported</span></div>
-              <div class="output-count"><b>9</b><small>assets</small></div>
-              <div><span class="publish-state ready">3 queued</span></div>
-              <div><button class="row-action" data-open-story data-story-title="Major sports interview produces a breakout quote" data-story-source="Post-game interview · 14:41">Open →</button></div>
-            </article>
-
-            <article class="newsroom-row" tabindex="0" data-source-kind="video" data-status="review" data-topic="entertainment" data-score="86" data-title="Zendaya explains how MJ would respond to another character" data-source="Cast interview">
-              <div class="story-cell-main"><span class="story-signal">86</span><div><b>Zendaya explains how MJ would respond to another character</b><small>Updated 2 hrs ago · Entertainment</small></div></div>
-              <div class="source-cell"><b>Cast interview</b><small>Video · 22:16</small></div>
-              <div><span class="desk-status review">Needs review</span></div>
-              <div><span class="guard-badge pass">✓ Supported</span></div>
-              <div class="output-count"><b>3</b><small>assets</small></div>
-              <div><span class="publish-state drafting">Drafting</span></div>
-              <div><button class="row-action" data-open-story data-story-title="Zendaya explains how MJ would respond to another character" data-story-source="Cast interview · 22:16">Review →</button></div>
-            </article>
-
-            <article class="newsroom-row" tabindex="0" data-source-kind="article" data-status="active" data-topic="technology" data-score="83" data-title="New platform feature changes the creator workflow" data-source="Product blog">
-              <div class="story-cell-main"><span class="story-signal">83</span><div><b>New platform feature changes the creator workflow</b><small>Updated 3 hrs ago · Technology</small></div></div>
-              <div class="source-cell"><b>Product blog</b><small>Article · 6 min</small></div>
-              <div><span class="desk-status active">Active</span></div>
-              <div><span class="guard-badge pass">✓ Supported</span></div>
-              <div class="output-count"><b>5</b><small>assets</small></div>
-              <div><span class="publish-state ready">Ready</span></div>
-              <div><button class="row-action" data-open-story data-story-title="New platform feature changes the creator workflow" data-story-source="Product blog · Article">Open →</button></div>
-            </article>
+            <div class="story-empty-filter">Loading workspace stories…</div>
           </div>
 
           <div id="story-empty-filter" class="story-empty-filter" hidden>No stories match these filters.</div>
-          <div class="story-table-footer"><span>Showing <b id="story-visible-count">5</b> prototype stories</span><button id="load-more-stories">Load more</button></div>
+          <div class="story-table-footer"><span id="story-desk-footer-label">Loading workspace stories…</span><button id="load-more-stories">Refresh</button></div>
         </div>
 
         <aside class="desk-insights">

@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from ..database import get_db
 from ..models import Story, StoryOutput
+from ..security import WorkspaceContext, get_workspace_context
 
 
 router = APIRouter(prefix="/stories", tags=["editorial-state"])
@@ -47,10 +48,11 @@ def _latest_editorial_selection(db: Session, story_id: str) -> StoryOutput | Non
 @router.get("/{story_id}/editorial/selection-state", response_model=EditorialSelectionStateOut)
 def editorial_selection_state(
     story_id: str,
+    workspace: WorkspaceContext = Depends(get_workspace_context),
     db: Session = Depends(get_db),
 ) -> EditorialSelectionStateOut:
     story = db.get(Story, story_id)
-    if not story:
+    if not story or story.workspace_id != workspace.workspace.id:
         raise HTTPException(status_code=404, detail="Story not found")
 
     selection = _latest_editorial_selection(db, story.id)

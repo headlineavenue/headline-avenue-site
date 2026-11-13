@@ -76,6 +76,8 @@ document.addEventListener("DOMContentLoaded",()=>{
     if(save)save.textContent=currentStoryId&&API_BASE?"Saved ✓":"Save story";
   }
 
+  window.HeadlineAvenueOpenWorkspace=openWorkspace;
+
   function analyze(v){
     if(!validYouTube(v)){showToast("Paste a valid YouTube URL.");return}
     openWorkspace("Story detected from YouTube source",v,v);
@@ -522,10 +524,29 @@ document.addEventListener("DOMContentLoaded",()=>{
   document.getElementById("back-radar")?.addEventListener("click",()=>openView("stories"));
   document.getElementById("new-story-btn")?.addEventListener("click",()=>openView("create"));
 
-  document.querySelectorAll("[data-open-story]").forEach(b=>b.addEventListener("click",()=>{
-    openWorkspace(b.dataset.storyTitle,b.dataset.storySource);
+  document.getElementById("stories-list")?.addEventListener("click",event=>{
+    const button=event.target.closest("[data-open-story]");
+    if(!button)return;
+    const storyId=button.dataset.storyId||null;
+    const sourceId=button.dataset.sourceId||null;
+    const storyTitle=button.dataset.storyTitle||"Story Workspace";
+    const storySource=button.dataset.storySource||"Indexed source";
+
+    openWorkspace(storyTitle,storySource,"",{storyId,sourceId});
+    if(storyId){
+      window.HeadlineAvenueRuntime.storyId=storyId;
+      window.HeadlineAvenueRuntime.sourceId=sourceId;
+      window.dispatchEvent(new CustomEvent("ha:story-created",{
+        detail:{
+          id:storyId,
+          source_id:sourceId,
+          title:storyTitle,
+          __haOpenedFromDesk:true
+        }
+      }));
+    }
     showToast("Story Workspace opened");
-  }));
+  });
 
   document.querySelectorAll(".moment").forEach((m,i)=>m.addEventListener("click",()=>{
     document.querySelectorAll(".moment").forEach(x=>x.classList.remove("active"));
@@ -629,24 +650,27 @@ document.addEventListener("DOMContentLoaded",()=>{
   });
 
   let deskInitialized=false;
+  let storyDeskStatus="all";
+
   function initStoryDesk(){
-    const rows=[...document.querySelectorAll("#stories-list .newsroom-row")];
     const search=document.getElementById("story-search-input");
     const topic=document.getElementById("story-topic-filter");
     const sort=document.getElementById("story-sort");
     const tabs=[...document.querySelectorAll("[data-story-tab]")];
-    let status="all";
+
+    const currentRows=()=>[...document.querySelectorAll("#stories-list .newsroom-row")];
 
     const apply=()=>{
+      const rows=currentRows();
       const q=(search?.value||"").trim().toLowerCase();
       const topicValue=topic?.value||"all";
       rows.forEach(row=>{
-        const matchesStatus=status==="all"||row.dataset.status===status;
+        const matchesStatus=storyDeskStatus==="all"||row.dataset.status===storyDeskStatus;
         const matchesTopic=topicValue==="all"||row.dataset.topic===topicValue;
-        const hay=(row.dataset.title+" "+row.dataset.source).toLowerCase();
+        const hay=((row.dataset.title||"")+" "+(row.dataset.source||"")).toLowerCase();
         row.hidden=!(matchesStatus&&matchesTopic&&(!q||hay.includes(q)));
       });
-      const visible=rows.filter(r=>!r.hidden);
+      const visible=rows.filter(row=>!row.hidden);
       const count=document.getElementById("story-visible-count");
       if(count)count.textContent=visible.length;
       const empty=document.getElementById("story-empty-filter");
@@ -656,12 +680,13 @@ document.addEventListener("DOMContentLoaded",()=>{
     const reorder=()=>{
       const list=document.getElementById("stories-list");
       const mode=sort?.value||"updated";
+      const rows=currentRows();
       const sorted=[...rows].sort((a,b)=>{
-        if(mode==="score") return Number(b.dataset.score)-Number(a.dataset.score);
-        if(mode==="title") return a.dataset.title.localeCompare(b.dataset.title);
-        return 0;
+        if(mode==="score")return Number(b.dataset.score||0)-Number(a.dataset.score||0);
+        if(mode==="title")return (a.dataset.title||"").localeCompare(b.dataset.title||"");
+        return Number(b.dataset.createdAt||0)-Number(a.dataset.createdAt||0);
       });
-      sorted.forEach(r=>list.appendChild(r));
+      sorted.forEach(row=>list?.appendChild(row));
       apply();
     };
 
@@ -670,39 +695,40 @@ document.addEventListener("DOMContentLoaded",()=>{
       topic?.addEventListener("change",apply);
       sort?.addEventListener("change",reorder);
       tabs.forEach(tab=>tab.addEventListener("click",()=>{
-        tabs.forEach(t=>t.classList.remove("active"));
+        tabs.forEach(item=>item.classList.remove("active"));
         tab.classList.add("active");
-        status=tab.dataset.storyTab;
+        storyDeskStatus=tab.dataset.storyTab||"all";
         apply();
       }));
       document.querySelectorAll("[data-jump-review]").forEach(btn=>btn.addEventListener("click",()=>{
         openView("stories");
         const reviewTab=document.querySelector('[data-story-tab="review"]');
-        tabs.forEach(t=>t.classList.remove("active"));
+        tabs.forEach(item=>item.classList.remove("active"));
         reviewTab?.classList.add("active");
-        status="review";
+        storyDeskStatus="review";
         apply();
       }));
-      document.getElementById("load-more-stories")?.addEventListener("click",()=>showToast("More stories will load from the backend."));
+      document.getElementById("load-more-stories")?.addEventListener("click",()=>showToast("All workspace stories are loaded."));
+      document.getElementById("stories-list")?.addEventListener("click",event=>{
+        if(event.target.closest("button,a,input,select,textarea"))return;
+        const row=event.target.closest(".newsroom-row");
+        if(!row)return;
+        currentRows().forEach(item=>item.classList.toggle("selected",item===row));
+      });
+      document.getElementById("stories-list")?.addEventListener("keydown",event=>{
+        const row=event.target.closest(".newsroom-row");
+        if(!row||!(event.key==="Enter"||event.key===" "))return;
+        event.preventDefault();
+        currentRows().forEach(item=>item.classList.toggle("selected",item===row));
+      });
       deskInitialized=true;
     }
     apply();
   }
 
-  // Final interaction polish
-  const selectStoryRow=(row)=>{
-    document.querySelectorAll("#stories-list .newsroom-row").forEach(r=>r.classList.toggle("selected",r===row));
-  };
-  document.querySelectorAll("#stories-list .newsroom-row").forEach(row=>{
-    row.addEventListener("click",e=>{
-      if(e.target.closest("button,a,input,select,textarea"))return;
-      selectStoryRow(row);
-    });
-    row.addEventListener("keydown",e=>{
-      if(e.key==="Enter"||e.key===" "){e.preventDefault();selectStoryRow(row)}
-    });
-  });
+  window.HeadlineAvenueRefreshStoryDesk=initStoryDesk;
 
+  // Final interaction polish
   document.querySelectorAll("#source-library-list .source-row").forEach(row=>{
     row.tabIndex=0;
     row.addEventListener("click",e=>{
@@ -723,9 +749,6 @@ document.addEventListener("DOMContentLoaded",()=>{
   }));
 
   document.querySelectorAll(".top-story-row").forEach(row=>row.addEventListener("mouseenter",()=>row.setAttribute("aria-label","Open performance detail for "+(row.dataset.performanceStory||"story"))));
-
-  const firstStory=document.querySelector("#stories-list .newsroom-row");
-  if(firstStory)firstStory.classList.add("selected");
 
   initStoryDesk();
 });
