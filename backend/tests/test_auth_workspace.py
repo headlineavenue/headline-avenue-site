@@ -204,3 +204,69 @@ def test_production_registration_defaults_closed() -> None:
     )
     assert production.registration_enabled is False
     assert development.registration_enabled is True
+
+
+def test_story_desk_uses_authenticated_workspace_data() -> None:
+    reset_database()
+    with TestClient(app) as client:
+        session = register(client, "desk@example.com", "Desk")
+        workspace_id = session["active_workspace_id"]
+        headers = {
+            "X-Workspace-ID": workspace_id,
+            "X-CSRF-Token": session["csrf_token"],
+        }
+
+        source = client.post(
+            "/api/v1/sources",
+            headers=headers,
+            json={
+                "kind": "transcript",
+                "title": "Desk test transcript",
+                "transcript_text": (
+                    "Headline Avenue is testing the real Story Desk. "
+                    "The authenticated workspace should show this persisted story "
+                    "and should not display prototype newsroom rows."
+                ),
+            },
+        )
+        assert source.status_code == 201, source.text
+        source_id = source.json()["id"]
+
+        story = client.post(
+            "/api/v1/stories",
+            headers=headers,
+            json={
+                "source_id": source_id,
+                "title": "Authenticated Story Desk test",
+            },
+        )
+        assert story.status_code == 201, story.text
+        story_id = story.json()["id"]
+
+        analyzed = client.post(
+            f"/api/v1/stories/{story_id}/analyze",
+            headers=headers,
+        )
+        assert analyzed.status_code == 200, analyzed.text
+
+        desk = client.get(
+            "/api/v1/stories/desk",
+            headers={"X-Workspace-ID": workspace_id},
+        )
+        assert desk.status_code == 200, desk.text
+        payload = desk.json()
+        assert payload["total"] == 1
+        assert payload["active"] == 1
+        assert payload["needs_review"] == 0
+        assert payload["scheduled"] == 0
+        assert len(payload["stories"]) == 1
+
+        item = payload["stories"][0]
+        assert item["id"] == story_id
+        assert item["source_id"] == source_id
+        assert item["title"] == "Authenticated Story Desk test"
+        assert item["source_title"] == "Desk test transcript"
+        assert item["source_kind"] == "transcript"
+        assert item["sourceguard_status"] == "supported"
+        assert item["publish_status"] == "drafting"
+        assert item["output_count"] == 0
