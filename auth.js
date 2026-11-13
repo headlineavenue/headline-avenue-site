@@ -214,7 +214,7 @@
       auth.activeWorkspaceId = null;
       auth.csrfToken = null;
       window.sessionStorage.clear();
-      showGate("login");
+      window.location.reload();
     }
   }
 
