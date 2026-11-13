@@ -13,6 +13,10 @@ class Settings(BaseSettings):
     )
     frontend_origin: str = "http://localhost:5500"
 
+    auth_cookie_name: str = "ha_session"
+    auth_session_days: int = 30
+    auth_cookie_secure: bool = False
+
     tiktok_client_key: str = ""
     tiktok_client_secret: str = ""
     tiktok_redirect_uri: str = ""
@@ -23,6 +27,14 @@ class Settings(BaseSettings):
     @property
     def cors_origin_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+
+    @property
+    def session_cookie_secure(self) -> bool:
+        return self.auth_cookie_secure or self.app_env.lower() == "production"
+
+    @property
+    def session_cookie_samesite(self) -> str:
+        return "none" if self.session_cookie_secure else "lax"
 
 
 @lru_cache
