@@ -12,11 +12,26 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: headline
+          POSTGRES_PASSWORD: headline
+          POSTGRES_DB: headline_migration_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U headline -d headline_migration_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     defaults:
       run:
         working-directory: backend
     env:
       PYTHONPATH: .
+      MIGRATION_TEST_DATABASE_URL: postgresql://headline:headline@127.0.0.1:5432/headline_migration_test
 
     steps:
       - uses: actions/checkout@v4
@@ -37,3 +52,6 @@ jobs:
 
       - name: Run tests
         run: pytest -q
+
+      - name: Verify legacy Postgres migration
+        run: python tests/verify_postgres_migration.py
