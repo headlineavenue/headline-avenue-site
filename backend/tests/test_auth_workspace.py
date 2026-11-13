@@ -187,3 +187,20 @@ def test_custom_domain_cors_allows_credentials() -> None:
         assert response.status_code == 200, response.text
         assert response.headers["access-control-allow-origin"] == "https://headlineavenue.com"
         assert response.headers["access-control-allow-credentials"] == "true"
+
+
+def test_production_registration_defaults_closed() -> None:
+    from app.config import Settings
+
+    production = Settings(
+        app_env="production",
+        auth_registration_enabled=None,
+        _env_file=None,
+    )
+    development = Settings(
+        app_env="development",
+        auth_registration_enabled=None,
+        _env_file=None,
+    )
+    assert production.registration_enabled is False
+    assert development.registration_enabled is True
