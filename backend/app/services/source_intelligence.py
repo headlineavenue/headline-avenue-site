@@ -312,7 +312,9 @@ def _compress_extract(value: str) -> str:
         re.I,
     )
     if first_shots:
-        value = f"{first_shots.group('subject').strip()}: The First Shots of {first_shots.group('object').strip()}"
+        subject = _headline_case(first_shots.group("subject").strip())
+        object_text = _headline_case(first_shots.group("object").strip())
+        value = f"{subject}: The First Shots of {object_text}"
 
     first_time = re.match(
         r"^(?P<subject>.{3,60}?)\s+was\s+the\s+first\s+time\s+someone\s+had\s+(?P<body>.+)$",
@@ -320,7 +322,9 @@ def _compress_extract(value: str) -> str:
         re.I,
     )
     if first_time:
-        value = f"{first_time.group('subject').strip()} had {first_time.group('body').strip()}"
+        subject = _headline_case(first_time.group("subject").strip())
+        body = _headline_case(first_time.group("body").strip())
+        value = f"{subject} had {body}"
 
     return value
 
