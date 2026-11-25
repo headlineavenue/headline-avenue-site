@@ -315,6 +315,11 @@ def _compress_extract(value: str) -> str:
     if first_shots:
         subject = _headline_case(first_shots.group("subject").strip(), force=source_was_shouting)
         object_text = _headline_case(first_shots.group("object").strip(), force=source_was_shouting)
+        object_text = re.sub(
+            r"^(A|An|The)\b",
+            lambda match: match.group(1).lower(),
+            object_text,
+        )
         value = f"{subject}: The First Shots of {object_text}"
 
     first_time = re.match(
