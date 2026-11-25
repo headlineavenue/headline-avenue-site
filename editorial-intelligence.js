@@ -32,7 +32,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (document.querySelector('link[data-ha-editorial-css]')) return;
     const link = document.createElement("link");
     link.rel = "stylesheet";
-    link.href = "editorial-intelligence.css?v=20260910-0730";
+    link.href = "editorial-intelligence.css?v=20261125-0305";
     link.dataset.haEditorialCss = "1";
     document.head.appendChild(link);
   }
@@ -116,6 +116,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function variantCard(variant, rank, generation) {
     const aligned = variant.sourceguard_status === "source_aligned";
+    const modeNotes = {
+      balanced: "Clean, neutral newsroom headline",
+      breaking: "Tighter news-desk treatment",
+      explainer: "Context-first framing",
+      social: "Compact platform-ready wording"
+    };
     const reason = (variant.reasons || []).join(" ");
     const mode = escapeHtml(variant.mode);
     const headline = escapeHtml(variant.headline);
@@ -128,7 +134,10 @@ document.addEventListener("DOMContentLoaded", () => {
         data-editorial-generation="${generation}"
         data-original-headline="${headline}">
         <div class="editorial-variant-head">
-          <span class="editorial-mode">${escapeHtml(variant.label)}</span>
+          <div class="editorial-mode-stack">
+            <span class="editorial-mode">${escapeHtml(variant.label)}</span>
+            <small>${escapeHtml(modeNotes[variant.mode] || "Editorial treatment")}</small>
+          </div>
           <span class="editorial-guard ${aligned ? "aligned" : "review"}"
             data-editorial-guard
             title="${escapeHtml(reason)}">${escapeHtml(guardLabel(variant))}</span>
