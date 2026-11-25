@@ -24,89 +24,27 @@ if ($WithTunnel -and -not (Get-Command cloudflared -ErrorAction SilentlyContinue
 
 Write-Host "Starting Headline Avenue local development..." -ForegroundColor Cyan
 
-# Prevent stale local services from surviving between launches. Repeated launcher runs
-# previously left multiple Uvicorn reloaders, HTTP servers, and ingestion workers alive,
-# which could serve older code after a git pull.
+# Repeated launcher runs used to leave older Uvicorn reloaders, HTTP servers,
+# and ingestion workers alive. Clean up only Python processes launched from
+# this repository before starting a fresh local stack.
 $escapedRoot = [regex]::Escape($Root)
-$staleProcesses = Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object {
-    $_.ProcessId -gt 0 -and
-    $_.Name -match '^python(?:\.exe)?
-$frontendCommand = @"
-Set-Location '$Root'
-Write-Host 'HEADLINE AVENUE - FRONTEND' -ForegroundColor Cyan
-& '$Python' -m http.server 5500
-"@
-
-$backendCommand = @"
-Set-Location '$Backend'
-Write-Host 'HEADLINE AVENUE - BACKEND API' -ForegroundColor Green
-& '$Python' -m uvicorn app.main:app --reload
-"@
-
-Start-Process powershell -ArgumentList "-NoExit", "-Command", $frontendCommand
-Start-Sleep -Milliseconds 600
-Start-Process powershell -ArgumentList "-NoExit", "-Command", $backendCommand
-
-$backendReady = $false
-for ($attempt = 0; $attempt -lt 30; $attempt++) {
-    try {
-        $health = Invoke-WebRequest -Uri "http://127.0.0.1:8000/health" -UseBasicParsing -TimeoutSec 1
-        if ($health.StatusCode -eq 200) {
-            $backendReady = $true
-            break
+$staleProcesses = @(
+    Get-CimInstance Win32_Process -ErrorAction SilentlyContinue |
+        Where-Object {
+            $_.ProcessId -gt 0 -and
+            $_.Name -match '^python(?:\.exe)?$' -and
+            $_.CommandLine -match $escapedRoot -and
+            $_.CommandLine -match '(uvicorn\s+app\.main:app|http\.server\s+5500|app\.ingestion_worker)'
         }
-    } catch {
-        Start-Sleep -Milliseconds 500
-    }
-}
+)
 
-if (-not $backendReady) {
-    Write-Host "Backend health check did not become ready. Worker was not started." -ForegroundColor Red
-    exit 1
-}
-
-$workerCommand = @"
-Set-Location '$Backend'
-Write-Host 'HEADLINE AVENUE - INGESTION WORKER' -ForegroundColor Yellow
-& '$Python' -m app.ingestion_worker
-"@
-Start-Process powershell -ArgumentList "-NoExit", "-Command", $workerCommand
-
-if ($WithTunnel) {
-    $tunnelCommand = @"
-Write-Host 'HEADLINE AVENUE - OPTIONAL CLOUDFLARE TUNNEL' -ForegroundColor Magenta
-cloudflared tunnel --url http://127.0.0.1:8000
-"@
-    Start-Sleep -Milliseconds 800
-    Start-Process powershell -ArgumentList "-NoExit", "-Command", $tunnelCommand
-}
-
-Start-Sleep -Seconds 2
-Start-Process "http://localhost:5500/app.html"
-
-Write-Host ""
-Write-Host "Local services opened:" -ForegroundColor Green
-Write-Host "  Frontend  -> http://localhost:5500/app.html"
-Write-Host "  Backend   -> http://127.0.0.1:8000"
-Write-Host "  Worker    -> queued media transcription"
-if ($WithTunnel) {
-    Write-Host "  Tunnel    -> optional temporary HTTPS URL"
-}
-Write-Host ""
-Write-Host "The production API remains https://api.headlineavenue.com." -ForegroundColor DarkGray
-Write-Host "Use -WithTunnel only when a provider callback specifically needs a temporary public local URL." -ForegroundColor DarkGray
- -and
-    $_.CommandLine -match $escapedRoot -and
-    $_.CommandLine -match '(uvicorn\s+app\.main:app|http\.server\s+5500|app\.ingestion_worker)'
-}
-
-if ($staleProcesses) {
+if ($staleProcesses.Count -gt 0) {
     Write-Host "Stopping stale Headline Avenue local services..." -ForegroundColor DarkYellow
     foreach ($process in $staleProcesses) {
         try {
-            Stop-Process -Id $process.ProcessId -Force -ErrorAction Stop
+            & taskkill.exe /PID $process.ProcessId /T /F 2>$null | Out-Null
         } catch {
-            Write-Host "Could not stop PID $($process.ProcessId): $($_.Exception.Message)" -ForegroundColor Yellow
+            # A parent process may already have terminated this child.
         }
     }
     Start-Sleep -Milliseconds 700
@@ -166,6 +104,7 @@ Set-Location '$Backend'
 Write-Host 'HEADLINE AVENUE - INGESTION WORKER' -ForegroundColor Yellow
 & '$Python' -m app.ingestion_worker
 "@
+
 Start-Process powershell -ArgumentList "-NoExit", "-Command", $workerCommand
 
 if ($WithTunnel) {
