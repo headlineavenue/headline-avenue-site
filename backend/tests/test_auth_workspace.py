@@ -563,3 +563,38 @@ def test_transcript_editorial_titles_are_readable_not_raw_asr_shouting() -> None
     assert all(len(headline) <= 82 for headline in headlines)
     assert all(headline != headline.upper() for headline in headlines if any(ch.isalpha() for ch in headline))
     assert any(headline.startswith("What the source says about") for headline in headlines)
+
+
+
+def test_loaded_or_incomplete_transcript_fragments_are_downranked() -> None:
+    from app.services.source_intelligence import build_story_angles
+
+    source_text = (
+        "The sick, irrational men, those who attempt to defend themselves against their own. "
+        "The interview later described how public attention changed the work and why the shift mattered. "
+        "The scum manifesto had clearly laid out the radical pieces. "
+        "A later section explained how the artist's public image shaped the response."
+    )
+
+    angles = build_story_angles(source_text, limit=3)
+    assert angles
+    assert "sick, irrational" not in angles[0]["title"].lower()
+    assert not angles[0]["title"].lower().endswith("their own")
+
+
+def test_generic_headline_lab_uses_editorial_framing_not_scaffolding_phrases() -> None:
+    from app.services.editorial_intelligence import build_editorial_variants
+
+    angle = {
+        "title": "Warhall: The First Shots of a Revolution",
+        "excerpt": "WARHALL WERE THE FIRST SHOTS OF A REVOLUTION",
+    }
+    variants = build_editorial_variants(angle, source_text=angle["excerpt"], generation=0)
+    by_mode = {item["mode"]: item for item in variants}
+
+    assert by_mode["balanced"]["headline"] == "Warhall: The First Shots of a Revolution"
+    assert by_mode["breaking"]["headline"] == "Warhall — The First Shots of a Revolution"
+    assert by_mode["explainer"]["headline"] == "How the source links Warhall to The First Shots of a Revolution"
+    assert by_mode["social"]["headline"] == "Warhall → The First Shots of a Revolution"
+    assert all("What the source says about" not in item["headline"] for item in variants)
+    assert all("In one line:" not in item["headline"] for item in variants)
