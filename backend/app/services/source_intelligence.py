@@ -262,9 +262,9 @@ def _looks_like_shouting(value: str) -> bool:
     return sum(1 for char in letters if char.isupper()) / len(letters) >= 0.82
 
 
-def _headline_case(value: str) -> str:
+def _headline_case(value: str, *, force: bool = False) -> str:
     value = re.sub(r"\s+", " ", value).strip()
-    if not _looks_like_shouting(value):
+    if not force and not _looks_like_shouting(value):
         return value
 
     small = {"the", "a", "an", "and", "or", "of", "to", "for", "in", "on", "from", "with", "by", "at"}
@@ -287,6 +287,7 @@ def _headline_case(value: str) -> str:
 def _compress_extract(value: str) -> str:
     """Shorten transcript run-ons at semantic clause boundaries without inventing facts."""
     value = re.sub(r"\s+", " ", value).strip()
+    source_was_shouting = _looks_like_shouting(value)
 
     # Deepgram and other ASR providers can return long punctuation-light turns.
     # Prefer the first complete editorial thought rather than arbitrarily clipping words.
@@ -312,8 +313,8 @@ def _compress_extract(value: str) -> str:
         re.I,
     )
     if first_shots:
-        subject = _headline_case(first_shots.group("subject").strip())
-        object_text = _headline_case(first_shots.group("object").strip())
+        subject = _headline_case(first_shots.group("subject").strip(), force=source_was_shouting)
+        object_text = _headline_case(first_shots.group("object").strip(), force=source_was_shouting)
         value = f"{subject}: The First Shots of {object_text}"
 
     first_time = re.match(
@@ -322,8 +323,8 @@ def _compress_extract(value: str) -> str:
         re.I,
     )
     if first_time:
-        subject = _headline_case(first_time.group("subject").strip())
-        body = _headline_case(first_time.group("body").strip())
+        subject = _headline_case(first_time.group("subject").strip(), force=source_was_shouting)
+        body = _headline_case(first_time.group("body").strip(), force=source_was_shouting)
         value = f"{subject} had {body}"
 
     return value
