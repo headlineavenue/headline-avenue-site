@@ -255,6 +255,76 @@ def _score_sentence(candidate: SentenceCandidate, total_chars: int) -> float:
     return min(max(round(score, 1), 0.0), 96.0)
 
 
+def _looks_like_shouting(value: str) -> bool:
+    letters = [char for char in value if char.isalpha()]
+    if len(letters) < 12:
+        return False
+    return sum(1 for char in letters if char.isupper()) / len(letters) >= 0.82
+
+
+def _headline_case(value: str) -> str:
+    value = re.sub(r"\s+", " ", value).strip()
+    if not _looks_like_shouting(value):
+        return value
+
+    small = {"the", "a", "an", "and", "or", "of", "to", "for", "in", "on", "from", "with", "by", "at"}
+    words = value.lower().split()
+    converted: list[str] = []
+    for index, word in enumerate(words):
+        core = re.sub(r"^[^a-z0-9]+|[^a-z0-9]+$", "", word)
+        if index and core in small:
+            converted.append(word)
+            continue
+        match = re.match(r"^([^a-z0-9]*)(.*?)([^a-z0-9]*)$", word)
+        if not match:
+            converted.append(word)
+            continue
+        prefix, body, suffix = match.groups()
+        converted.append(prefix + (body[:1].upper() + body[1:] if body else body) + suffix)
+    return " ".join(converted)
+
+
+def _compress_extract(value: str) -> str:
+    """Shorten transcript run-ons at semantic clause boundaries without inventing facts."""
+    value = re.sub(r"\s+", " ", value).strip()
+
+    # Deepgram and other ASR providers can return long punctuation-light turns.
+    # Prefer the first complete editorial thought rather than arbitrarily clipping words.
+    boundary_patterns = (
+        r"\s+by the time\s+",
+        r"\s+i first\s+",
+        r"\s+when\s+",
+        r"\s+while\s+",
+        r"\s+because\s+",
+        r"\s+but\s+",
+        r"\s+which\s+",
+        r"\s+that meant\s+",
+    )
+    for pattern in boundary_patterns:
+        match = re.search(pattern, value, re.I)
+        if match and 28 <= match.start() <= 110:
+            value = value[: match.start()].strip(" ,;:—-")
+            break
+
+    first_shots = re.match(
+        r"^(?P<subject>.{3,48}?)\s+(?:was|were)\s+the\s+first\s+shots?\s+of\s+(?P<object>.+)$",
+        value,
+        re.I,
+    )
+    if first_shots:
+        value = f"{first_shots.group('subject').strip()}: The First Shots of {first_shots.group('object').strip()}"
+
+    first_time = re.match(
+        r"^(?P<subject>.{3,60}?)\s+was\s+the\s+first\s+time\s+someone\s+had\s+(?P<body>.+)$",
+        value,
+        re.I,
+    )
+    if first_time:
+        value = f"{first_time.group('subject').strip()} had {first_time.group('body').strip()}"
+
+    return value
+
+
 def _angle_title(sentence: str) -> str:
     """Produce a concise extractive headline without inventing new facts."""
     value = re.sub(r"\s+", " ", sentence.strip().strip('"“”'))
@@ -265,27 +335,27 @@ def _angle_title(sentence: str) -> str:
     contrast = re.search(r"\bbut\s+(?:we\s+)?(?:realized|found|learned|discovered)\s+(that\s+)?(.+)$", value, re.I)
     if contrast:
         value = contrast.group(2).strip()
-        value = value[:1].upper() + value[1:]
+
+    value = _compress_extract(value)
 
     # A causal result usually makes a stronger title than the supporting explanation.
     because_index = re.search(r"\s+because\s+", value, re.I)
     if because_index and 35 <= because_index.start() <= 105:
         value = value[: because_index.start()].strip()
 
-    value = value.rstrip(".?!")
-    if len(value) <= 100:
+    value = _headline_case(value.rstrip(".?!"))
+    if len(value) <= 92:
         return value
 
     words = value.split()
     title_words: list[str] = []
     for word in words:
         candidate = " ".join(title_words + [word])
-        if len(candidate) > 96:
+        if len(candidate) > 88:
             break
         title_words.append(word)
 
-    title = " ".join(title_words).rstrip(",;:.!?")
-    return title + "…"
+    return " ".join(title_words).rstrip(",;:.!?")
 
 
 def build_story_angles(text: str, limit: int = 3) -> list[dict]:
