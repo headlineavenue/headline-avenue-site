@@ -536,3 +536,30 @@ def test_video_story_analysis_maps_angles_to_timestamped_evidence() -> None:
         items = evidence.json()
         assert items
         assert any(item["start_ms"] is not None and item["end_ms"] is not None for item in items)
+
+
+
+def test_transcript_editorial_titles_are_readable_not_raw_asr_shouting() -> None:
+    from app.services.editorial_intelligence import build_editorial_variants
+    from app.services.source_intelligence import build_story_angles
+
+    source_text = (
+        "WARHALL WERE THE FIRST SHOTS OF A REVOLUTION BY THE TIME VALERIE WAS 15 "
+        "SHE HAD GIVEN BIRTH TWICE AND THE INTERVIEW CONTINUED INTO A MUCH LONGER "
+        "PERSONAL ACCOUNT OF WHAT HAPPENED NEXT."
+    )
+
+    angles = build_story_angles(source_text, limit=3)
+    assert angles
+    top = angles[0]
+    assert top["title"] == "Warhall: The First Shots of a Revolution"
+    assert not top["title"].endswith("…")
+    assert len(top["title"]) < 60
+
+    variants = build_editorial_variants(top, source_text=source_text, generation=0)
+    headlines = [item["headline"] for item in variants]
+    assert len(headlines) >= 3
+    assert len(set(headlines)) == len(headlines)
+    assert all(len(headline) <= 82 for headline in headlines)
+    assert all(headline != headline.upper() for headline in headlines if any(ch.isalpha() for ch in headline))
+    assert any(headline.startswith("What the source says about") for headline in headlines)
