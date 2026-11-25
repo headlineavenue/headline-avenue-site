@@ -18,6 +18,10 @@ MAX_SOURCE_CHARS = 120_000
 QUESTION_SPEAKERS = {"interviewer", "host", "reporter", "moderator", "question"}
 ANSWER_SPEAKERS = {"guest", "answer"}
 
+LOW_QUALITY_ANGLE_TERMS = {
+    "sick", "irrational", "scum", "idiot", "stupid", "crazy", "lunatic",
+}
+
 
 @dataclass
 class ExtractedSource:
@@ -246,6 +250,15 @@ def _score_sentence(candidate: SentenceCandidate, total_chars: int) -> float:
         score -= 18.0
     if "interviewer:" in lower or "test transcript" in lower:
         score -= 22.0
+
+    loaded_hits = sum(1 for term in LOW_QUALITY_ANGLE_TERMS if re.search(rf"\b{re.escape(term)}\b", lower))
+    if loaded_hits:
+        score -= min(loaded_hits * 9.0, 24.0)
+
+    # ASR fragments that end on an unresolved grammatical tail should not outrank
+    # complete statements merely because they sound dramatic.
+    if re.search(r"\b(the|a|an|of|to|for|from|with|by|their|his|her|our|your|own)\s*[,.!?-]*$", lower):
+        score -= 18.0
 
     # Slight preference for earlier source material without overwhelming substance.
     if total_chars > 0:
