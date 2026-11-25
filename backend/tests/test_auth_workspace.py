@@ -441,3 +441,98 @@ def test_transcription_job_indexes_source_with_timestamped_segments(monkeypatch)
 
         second_pass = ingestion_worker.process_one()
         assert second_pass is False
+
+
+def test_video_story_analysis_maps_angles_to_timestamped_evidence() -> None:
+    from app.database import SessionLocal
+    from app.models import Source, SourceTranscriptSegment
+
+    reset_database()
+    with TestClient(app) as client:
+        session = register(client, "timestamp@example.com", "Timestamp")
+        workspace_id = session["active_workspace_id"]
+        headers = {
+            "X-Workspace-ID": workspace_id,
+            "X-CSRF-Token": session["csrf_token"],
+        }
+
+        source = client.post(
+            "/api/v1/sources",
+            headers=headers,
+            json={
+                "kind": "video",
+                "title": "Timestamped interview",
+                "transcript_text": (
+                    "Warhol changed how artists thought about celebrity and commerce. "
+                    "Valerie later described the atmosphere around the Chelsea Hotel in detail. "
+                    "The interview then returned to how public attention shaped the work."
+                ),
+            },
+        )
+        assert source.status_code == 201, source.text
+        source_id = source.json()["id"]
+
+        db = SessionLocal()
+        try:
+            db.add_all([
+                SourceTranscriptSegment(
+                    source_id=source_id,
+                    sequence=0,
+                    start_ms=1000,
+                    end_ms=4200,
+                    speaker="0",
+                    text="Warhol changed how artists thought about celebrity and commerce.",
+                    confidence=0.97,
+                ),
+                SourceTranscriptSegment(
+                    source_id=source_id,
+                    sequence=1,
+                    start_ms=4300,
+                    end_ms=8900,
+                    speaker="1",
+                    text="Valerie later described the atmosphere around the Chelsea Hotel in detail.",
+                    confidence=0.96,
+                ),
+                SourceTranscriptSegment(
+                    source_id=source_id,
+                    sequence=2,
+                    start_ms=9000,
+                    end_ms=13200,
+                    speaker="0",
+                    text="The interview then returned to how public attention shaped the work.",
+                    confidence=0.95,
+                ),
+            ])
+            db.commit()
+        finally:
+            db.close()
+
+        story = client.post(
+            "/api/v1/stories",
+            headers=headers,
+            json={"source_id": source_id, "title": "Timestamped story"},
+        )
+        assert story.status_code == 201, story.text
+        story_id = story.json()["id"]
+
+        analyzed = client.post(
+            f"/api/v1/stories/{story_id}/analyze",
+            headers=headers,
+        )
+        assert analyzed.status_code == 200, analyzed.text
+        payload = analyzed.json()
+        assert payload["angles"]
+        top = payload["angles"][0]
+        assert top["start_ms"] is not None
+        assert top["end_ms"] is not None
+        assert top["location"].startswith("Video · 00:")
+        assert "character" not in top["location"]
+
+        evidence = client.get(
+            f"/api/v1/stories/{story_id}/evidence",
+            headers={"X-Workspace-ID": workspace_id},
+        )
+        assert evidence.status_code == 200, evidence.text
+        items = evidence.json()
+        assert items
+        assert any(item["start_ms"] is not None and item["end_ms"] is not None for item in items)
