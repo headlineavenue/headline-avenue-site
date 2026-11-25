@@ -10,6 +10,7 @@ SAFE_FRAME_WORDS = {
     "multiple", "format", "formats", "across", "beyond", "keeps", "keeping", "stay", "stays", "less",
     "more", "via", "turn", "turns", "turning", "every", "each", "piece", "reporting", "editorial",
     "content", "team", "teams", "attached", "trail", "source", "short", "longer", "line", "inside",
+    "links", "link", "framing", "frame",
 }
 
 STOP_WORDS = {
@@ -277,8 +278,8 @@ def _breaking(title: str, evidence: str, source_text: str, generation: int = 0) 
     if ":" in base:
         left, right = [part.strip() for part in base.split(":", 1)]
         if left and right:
-            return _trim(f"{right} — {left}", 68)
-    return _trim(f"Inside {base}", 68)
+            return _trim(f"{left} — {right}", 68)
+    return _trim(base, 68)
 
 
 def _explainer(title: str, evidence: str, source_text: str, generation: int = 0) -> str:
@@ -314,8 +315,8 @@ def _explainer(title: str, evidence: str, source_text: str, generation: int = 0)
     if ":" in base:
         left, right = [part.strip() for part in base.split(":", 1)]
         if left and right:
-            return _trim(f"What the source says about {left} and {right}", 82)
-    return _trim(f"What the source says about {_lower_first(base)}", 82)
+            return _trim(f"How the source links {left} to {right}", 82)
+    return _trim(f"How the source frames {_lower_first(base)}", 82)
 
 
 def _social(title: str, evidence: str, source_text: str, generation: int = 0) -> str:
@@ -351,7 +352,11 @@ def _social(title: str, evidence: str, source_text: str, generation: int = 0) ->
         return options[generation % len(options)]
 
     base = _fallback_seed(title, evidence)
-    return _trim(f"In one line: {base}", 64)
+    if ":" in base:
+        left, right = [part.strip() for part in base.split(":", 1)]
+        if left and right:
+            return _trim(f"{left} → {right}", 64)
+    return _trim(base, 64)
 
 
 def hook_from_headline(headline: str, mode: str) -> str:
@@ -419,8 +424,9 @@ def sourceguard_headline(headline: str, evidence: str, source_text: str = "") ->
         if token not in SAFE_FRAME_WORDS
     }
 
-    overlap = len(headline_tokens & source_tokens)
-    grounding_score = round((overlap / max(len(headline_tokens), 1)) * 100)
+    score_tokens = {token for token in headline_tokens if token not in SAFE_FRAME_WORDS}
+    overlap = len(score_tokens & source_tokens)
+    grounding_score = round((overlap / max(len(score_tokens), 1)) * 100)
 
     if len(new_tokens) > 1:
         needs_review = True
