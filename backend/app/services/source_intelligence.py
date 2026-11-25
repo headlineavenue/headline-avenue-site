@@ -328,6 +328,8 @@ def build_story_angles(text: str, limit: int = 3) -> list[dict]:
                 "title": _angle_title(item["sentence"]),
                 "claim": item["sentence"],
                 "excerpt": item["sentence"],
+                "source_start_char": item["position"],
+                "source_end_char": item["position"] + len(item["sentence"]),
                 "location": f"Source text · character {item['position']:,}",
                 "signal": "High signal" if score >= 82 else ("Strong" if score >= 72 else "Candidate"),
                 "verification_level": "direct_extract",
