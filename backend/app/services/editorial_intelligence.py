@@ -27,7 +27,7 @@ RISKY_EDITORIAL_TERMS = {
 
 MODE_LABELS = {
     "balanced": "Balanced",
-    "breaking": "Breaking-style",
+    "breaking": "News Desk",
     "explainer": "Explainer",
     "social": "Social",
 }
