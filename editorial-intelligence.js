@@ -530,12 +530,30 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   window.addEventListener("ha:story-created", resetPanel);
+
+  // Headline Lab must not depend on one transient click/selection event.
+  // Restored workspaces can finish Source Intelligence before the default
+  // angle-selection event is observed, so the authoritative analysis-ready
+  // event also wakes editorial generation.
+  window.addEventListener("ha:analysis-ready", event => {
+    const analysis = event.detail || runtime.analysis;
+    const angles = Array.isArray(analysis?.angles) ? analysis.angles : [];
+    if (!runtime.storyId || !angles.length) return;
+
+    const selectedIndex = Number.isInteger(Number(runtime.selectedAngleIndex))
+      ? Math.max(0, Math.min(Number(runtime.selectedAngleIndex), angles.length - 1))
+      : 0;
+    const angle = runtime.selectedAngle || angles[selectedIndex] || angles[0];
+    window.setTimeout(() => loadVariants(angle?.rank || selectedIndex + 1), 0);
+  });
+
   window.addEventListener("ha:angle-selected", event => {
     const rank = event.detail?.angle?.rank || Number(event.detail?.index || 0) + 1;
     loadVariants(rank);
   });
 
   if (runtime.analysis?.angles?.length && runtime.storyId) {
-    loadVariants(runtime.analysis.angles[0].rank || 1);
+    const rank = runtime.selectedAngle?.rank || runtime.analysis.angles[0].rank || 1;
+    loadVariants(rank);
   }
 });
