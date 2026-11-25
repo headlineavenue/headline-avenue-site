@@ -562,7 +562,8 @@ def test_transcript_editorial_titles_are_readable_not_raw_asr_shouting() -> None
     assert len(set(headlines)) == len(headlines)
     assert all(len(headline) <= 82 for headline in headlines)
     assert all(headline != headline.upper() for headline in headlines if any(ch.isalpha() for ch in headline))
-    assert any(headline.startswith("What the source says about") for headline in headlines)
+    assert any(headline.startswith("How the source links") for headline in headlines)
+    assert any(" → " in headline for headline in headlines)
 
 
 
