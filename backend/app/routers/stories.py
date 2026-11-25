@@ -3,7 +3,14 @@ from sqlalchemy import and_, func, select
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from ..models import Evidence, PublishingJob, Source, Story, StoryOutput
+from ..models import (
+    Evidence,
+    PublishingJob,
+    Source,
+    SourceTranscriptSegment,
+    Story,
+    StoryOutput,
+)
 from ..schemas import (
     EvidenceCreate,
     EvidenceOut,
@@ -18,6 +25,70 @@ from ..services.source_intelligence import build_story_angles, extract_source_te
 from ..security import WorkspaceContext, get_workspace_context
 
 router = APIRouter(prefix="/stories", tags=["stories"])
+
+
+def _format_ms(value: int) -> str:
+    total_ms = max(0, int(value))
+    minutes, remainder = divmod(total_ms, 60_000)
+    seconds, millis = divmod(remainder, 1_000)
+    return f"{minutes:02d}:{seconds:02d}.{millis:03d}"
+
+
+def _timestamp_angles(
+    *,
+    text: str,
+    angles: list[dict],
+    segments: list[SourceTranscriptSegment],
+    source_kind: str,
+) -> list[dict]:
+    if source_kind not in {"video", "audio"} or not segments or not text:
+        return angles
+
+    spans: list[tuple[int, int, SourceTranscriptSegment]] = []
+    cursor = 0
+    for segment in segments:
+        segment_text = " ".join((segment.text or "").split()).strip()
+        if not segment_text:
+            continue
+        start = text.find(segment_text, cursor)
+        if start < 0:
+            start = text.find(segment_text)
+        if start < 0:
+            continue
+        end = start + len(segment_text)
+        spans.append((start, end, segment))
+        cursor = end
+
+    if not spans:
+        return angles
+
+    for angle in angles:
+        start_char = int(angle.get("source_start_char") or 0)
+        end_char = int(angle.get("source_end_char") or start_char)
+        overlapping = [
+            segment
+            for span_start, span_end, segment in spans
+            if span_end > start_char and span_start < end_char
+        ]
+        if not overlapping:
+            continue
+
+        start_ms = min(segment.start_ms for segment in overlapping)
+        end_ms = max(segment.end_ms for segment in overlapping)
+        speakers = [segment.speaker for segment in overlapping if segment.speaker is not None]
+        speaker = speakers[0] if speakers and len(set(speakers)) == 1 else None
+
+        angle["start_ms"] = start_ms
+        angle["end_ms"] = end_ms
+        angle["speaker"] = speaker
+
+        media_label = "Video" if source_kind == "video" else "Audio"
+        speaker_label = f" · Speaker {speaker}" if speaker is not None else ""
+        angle["location"] = (
+            f"{media_label} · {_format_ms(start_ms)}–{_format_ms(end_ms)}{speaker_label}"
+        )
+
+    return angles
 
 
 @router.post("", response_model=StoryOut, status_code=201)
@@ -257,6 +328,19 @@ def analyze_story(
         )
 
     angles = build_story_angles(extracted.text, limit=3)
+    transcript_segments = list(
+        db.scalars(
+            select(SourceTranscriptSegment)
+            .where(SourceTranscriptSegment.source_id == source.id)
+            .order_by(SourceTranscriptSegment.sequence.asc())
+        )
+    )
+    angles = _timestamp_angles(
+        text=extracted.text,
+        angles=angles,
+        segments=transcript_segments,
+        source_kind=source.kind,
+    )
     if not angles:
         source.status = "needs_review"
         source.transcript_text = extracted.text
@@ -313,6 +397,8 @@ def analyze_story(
                 source_id=source.id,
                 claim=angle["claim"],
                 excerpt=angle["excerpt"],
+                start_ms=angle.get("start_ms"),
+                end_ms=angle.get("end_ms"),
                 support_status="supported",
             )
         )
@@ -341,6 +427,9 @@ def analyze_story(
             headline=top["title"],
             evidence=top["excerpt"],
             location=top["location"],
+            start_ms=top.get("start_ms"),
+            end_ms=top.get("end_ms"),
+            speaker=top.get("speaker"),
             context=(
                 "This candidate is derived directly from indexed source text. "
                 "Semantic claim verification is still a later SourceGuard layer."
