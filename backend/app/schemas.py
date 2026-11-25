@@ -164,6 +164,11 @@ class StoryAngleOut(BaseModel):
     location: str
     signal: str
     verification_level: Literal["direct_extract"]
+    source_start_char: int | None = None
+    source_end_char: int | None = None
+    start_ms: int | None = None
+    end_ms: int | None = None
+    speaker: str | None = None
 
 
 class SourceGuardTraceOut(BaseModel):
@@ -172,6 +177,9 @@ class SourceGuardTraceOut(BaseModel):
     headline: str | None = None
     evidence: str | None = None
     location: str | None = None
+    start_ms: int | None = None
+    end_ms: int | None = None
+    speaker: str | None = None
     context: str
 
 
