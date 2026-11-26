@@ -20,6 +20,12 @@ ANSWER_SPEAKERS = {"guest", "answer"}
 
 LOW_QUALITY_ANGLE_TERMS = {
     "sick", "irrational", "scum", "idiot", "stupid", "crazy", "lunatic",
+    "pussy", "fuck", "fucking", "bitch", "asshole",
+}
+
+PRESERVE_UPPERCASE_TOKENS = {
+    "AI", "API", "CEO", "CFO", "CTO", "COO", "FBI", "CIA", "NASA", "NATO",
+    "EU", "UK", "US", "UAE", "UN", "WHO", "GDP", "IPO", "SEC", "FTC", "DOJ",
 }
 
 
@@ -257,8 +263,11 @@ def _score_sentence(candidate: SentenceCandidate, total_chars: int) -> float:
 
     # ASR fragments that end on an unresolved grammatical tail should not outrank
     # complete statements merely because they sound dramatic.
-    if re.search(r"\b(the|a|an|of|to|for|from|with|by|their|his|her|our|your|own)\s*[,.!?-]*$", lower):
-        score -= 18.0
+    if re.search(r"\b(the|a|an|of|to|for|from|with|by|in|into|their|his|her|our|your|own)\s*[,.!?-]*$", lower):
+        score -= 24.0
+
+    if re.search(r"\b(completely|always|never|everyone|nobody)\b", lower):
+        score -= 5.0
 
     # Slight preference for earlier source material without overwhelming substance.
     if total_chars > 0:
@@ -277,23 +286,38 @@ def _looks_like_shouting(value: str) -> bool:
 
 def _headline_case(value: str, *, force: bool = False) -> str:
     value = re.sub(r"\s+", " ", value).strip()
-    if not force and not _looks_like_shouting(value):
-        return value
-
+    whole_phrase_shouting = force or _looks_like_shouting(value)
     small = {"the", "a", "an", "and", "or", "of", "to", "for", "in", "on", "from", "with", "by", "at"}
-    words = value.lower().split()
+
     converted: list[str] = []
-    for index, word in enumerate(words):
-        core = re.sub(r"^[^a-z0-9]+|[^a-z0-9]+$", "", word)
-        if index and core in small:
-            converted.append(word)
-            continue
-        match = re.match(r"^([^a-z0-9]*)(.*?)([^a-z0-9]*)$", word)
+    for index, word in enumerate(value.split()):
+        match = re.match(r"^([^A-Za-z0-9]*)(.*?)([^A-Za-z0-9]*)$", word)
         if not match:
             converted.append(word)
             continue
+
         prefix, body, suffix = match.groups()
-        converted.append(prefix + (body[:1].upper() + body[1:] if body else body) + suffix)
+        if not body:
+            converted.append(word)
+            continue
+
+        bare = re.sub(r"[^A-Za-z0-9]", "", body)
+        is_upper_token = len(bare) >= 4 and bare.isalpha() and bare.isupper()
+
+        if bare in PRESERVE_UPPERCASE_TOKENS:
+            normalized = body
+        elif whole_phrase_shouting or is_upper_token:
+            lowered = body.lower()
+            core = re.sub(r"^[^a-z0-9]+|[^a-z0-9]+$", "", lowered)
+            if index and core in small:
+                normalized = lowered
+            else:
+                normalized = lowered[:1].upper() + lowered[1:]
+        else:
+            normalized = body
+
+        converted.append(prefix + normalized + suffix)
+
     return " ".join(converted)
 
 
