@@ -26,6 +26,11 @@ RISKY_EDITORIAL_TERMS = {
     "admits", "confirms", "proves", "exclusive", "breaking", "scandal", "lie", "lies", "fraud", "abuse", "abused",
 }
 
+PRESERVE_UPPERCASE_TOKENS = {
+    "AI", "API", "CEO", "CFO", "CTO", "COO", "FBI", "CIA", "NASA", "NATO",
+    "EU", "UK", "US", "UAE", "UN", "WHO", "GDP", "IPO", "SEC", "FTC", "DOJ",
+}
+
 MODE_LABELS = {
     "balanced": "Balanced",
     "breaking": "News Desk",
@@ -47,18 +52,38 @@ def _looks_like_shouting(value: str) -> bool:
 
 def _normalize_case(value: str) -> str:
     value = _clean(value)
-    if not _looks_like_shouting(value):
-        return value
-
+    whole_phrase_shouting = _looks_like_shouting(value)
     small = {"the", "a", "an", "and", "or", "of", "to", "for", "in", "on", "from", "with", "by", "at"}
-    words = value.lower().split()
+
     converted: list[str] = []
-    for index, word in enumerate(words):
-        bare = re.sub(r"^[^a-z0-9]+|[^a-z0-9]+$", "", word)
-        if index and bare in small:
+    for index, word in enumerate(value.split()):
+        match = re.match(r"^([^A-Za-z0-9]*)(.*?)([^A-Za-z0-9]*)$", word)
+        if not match:
             converted.append(word)
+            continue
+
+        prefix, body, suffix = match.groups()
+        if not body:
+            converted.append(word)
+            continue
+
+        bare = re.sub(r"[^A-Za-z0-9]", "", body)
+        is_upper_token = len(bare) >= 4 and bare.isalpha() and bare.isupper()
+
+        if bare in PRESERVE_UPPERCASE_TOKENS:
+            normalized = body
+        elif whole_phrase_shouting or is_upper_token:
+            lowered = body.lower()
+            core = re.sub(r"^[^a-z0-9]+|[^a-z0-9]+$", "", lowered)
+            if index and core in small:
+                normalized = lowered
+            else:
+                normalized = lowered[:1].upper() + lowered[1:]
         else:
-            converted.append(word[:1].upper() + word[1:] if word else word)
+            normalized = body
+
+        converted.append(prefix + normalized + suffix)
+
     return " ".join(converted)
 
 
