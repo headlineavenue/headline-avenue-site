@@ -599,3 +599,43 @@ def test_generic_headline_lab_uses_editorial_framing_not_scaffolding_phrases() -
     assert by_mode["social"]["headline"] == "Warhall → The First Shots of a Revolution"
     assert all("What the source says about" not in item["headline"] for item in variants)
     assert all("In one line:" not in item["headline"] for item in variants)
+
+
+
+def test_mixed_asr_caps_are_normalized_without_destroying_acronyms() -> None:
+    from app.services.editorial_intelligence import build_editorial_variants
+    from app.services.source_intelligence import build_story_angles
+
+    source_text = (
+        "WARHALL WERE THE FIRST SHOTS OF A REVOLUTION by the time the interview turned to NASA and AI."
+    )
+    angles = build_story_angles(source_text, limit=1)
+    assert angles
+    assert angles[0]["title"] == "Warhall: The First Shots of a Revolution"
+
+    mixed_angle = {
+        "title": "WARHALL: The First Shots of a REVOLUTION involving NASA and AI",
+        "excerpt": source_text,
+    }
+    variants = build_editorial_variants(mixed_angle, source_text=source_text, generation=0)
+    headlines = [item["headline"] for item in variants]
+    assert headlines
+    assert all("WARHALL" not in headline for headline in headlines)
+    assert all("REVOLUTION" not in headline for headline in headlines)
+    assert any("NASA" in headline for headline in headlines)
+    assert any("AI" in headline for headline in headlines)
+
+
+def test_profane_incomplete_transcript_fragment_is_not_top_angle() -> None:
+    from app.services.source_intelligence import build_story_angles
+
+    source_text = (
+        "We need to make them face their greatest fear, their pussy envy, and we need to do it in. "
+        "The interview later explains how public attention shaped the artist's work and changed the response. "
+        "A separate section describes how the Chelsea Hotel became central to the story."
+    )
+
+    angles = build_story_angles(source_text, limit=3)
+    assert angles
+    assert "pussy" not in angles[0]["title"].lower()
+    assert not angles[0]["title"].lower().endswith(" in")
