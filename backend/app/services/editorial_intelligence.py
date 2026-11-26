@@ -9,7 +9,8 @@ SAFE_FRAME_WORDS = {
     "and", "or", "of", "for", "with", "without", "into", "its", "their", "your", "our", "one", "same",
     "multiple", "format", "formats", "across", "beyond", "keeps", "keeping", "stay", "stays", "less",
     "more", "via", "turn", "turns", "turning", "every", "each", "piece", "reporting", "editorial",
-    "content", "team", "teams", "attached", "trail", "source", "short", "longer",
+    "content", "team", "teams", "attached", "trail", "source", "short", "longer", "line", "inside",
+    "links", "link", "framing", "frame",
 }
 
 STOP_WORDS = {
@@ -25,9 +26,14 @@ RISKY_EDITORIAL_TERMS = {
     "admits", "confirms", "proves", "exclusive", "breaking", "scandal", "lie", "lies", "fraud", "abuse", "abused",
 }
 
+PRESERVE_UPPERCASE_TOKENS = {
+    "AI", "API", "CEO", "CFO", "CTO", "COO", "FBI", "CIA", "NASA", "NATO",
+    "EU", "UK", "US", "UAE", "UN", "WHO", "GDP", "IPO", "SEC", "FTC", "DOJ",
+}
+
 MODE_LABELS = {
     "balanced": "Balanced",
-    "breaking": "Breaking-style",
+    "breaking": "News Desk",
     "explainer": "Explainer",
     "social": "Social",
 }
@@ -37,8 +43,52 @@ def _clean(value: str | None) -> str:
     return re.sub(r"\s+", " ", str(value or "")).strip().strip('"“”')
 
 
-def _capitalize(value: str) -> str:
+def _looks_like_shouting(value: str) -> bool:
+    letters = [char for char in value if char.isalpha()]
+    if len(letters) < 12:
+        return False
+    return sum(1 for char in letters if char.isupper()) / len(letters) >= 0.82
+
+
+def _normalize_case(value: str) -> str:
     value = _clean(value)
+    whole_phrase_shouting = _looks_like_shouting(value)
+    small = {"the", "a", "an", "and", "or", "of", "to", "for", "in", "on", "from", "with", "by", "at"}
+
+    converted: list[str] = []
+    for index, word in enumerate(value.split()):
+        match = re.match(r"^([^A-Za-z0-9]*)(.*?)([^A-Za-z0-9]*)$", word)
+        if not match:
+            converted.append(word)
+            continue
+
+        prefix, body, suffix = match.groups()
+        if not body:
+            converted.append(word)
+            continue
+
+        bare = re.sub(r"[^A-Za-z0-9]", "", body)
+        is_upper_token = len(bare) >= 4 and bare.isalpha() and bare.isupper()
+
+        if bare in PRESERVE_UPPERCASE_TOKENS:
+            normalized = body
+        elif whole_phrase_shouting or is_upper_token:
+            lowered = body.lower()
+            core = re.sub(r"^[^a-z0-9]+|[^a-z0-9]+$", "", lowered)
+            if index and core in small:
+                normalized = lowered
+            else:
+                normalized = lowered[:1].upper() + lowered[1:]
+        else:
+            normalized = body
+
+        converted.append(prefix + normalized + suffix)
+
+    return " ".join(converted)
+
+
+def _capitalize(value: str) -> str:
+    value = _normalize_case(value)
     return value[:1].upper() + value[1:] if value else value
 
 
@@ -52,16 +102,20 @@ def _lower_first(value: str) -> str:
 
 
 def _title_case_phrase(value: str) -> str:
-    small = {"the", "a", "an", "and", "or", "of", "to", "for", "in", "on", "from", "with"}
+    small = {"the", "a", "an", "and", "or", "of", "to", "for", "in", "on", "from", "with", "by", "at"}
     words = _clean(value).split()
-    return " ".join(
-        word.lower() if i and word.lower() in small else word[:1].upper() + word[1:]
-        for i, word in enumerate(words)
-    )
+    converted: list[str] = []
+    for i, word in enumerate(words):
+        lowered = word.lower()
+        if i and lowered in small:
+            converted.append(lowered)
+        else:
+            converted.append(lowered[:1].upper() + lowered[1:] if lowered else lowered)
+    return " ".join(converted)
 
 
 def _strip_discourse(value: str) -> str:
-    value = _clean(value)
+    value = _normalize_case(value)
     value = re.sub(r"^(yes|no|well|so|and)\s*[,.:;-]?\s+", "", value, flags=re.I)
     value = re.sub(r"^(originally|initially)\s*,\s*", "", value, flags=re.I)
     return _capitalize(value)
@@ -166,6 +220,14 @@ def _extract_faster_pattern(evidence: str) -> tuple[str, str] | None:
     return (match.group("subject"), match.group("reason")) if match else None
 
 
+def _fallback_seed(title: str, evidence: str) -> str:
+    value = _strip_discourse(title or evidence)
+    value = re.sub(r"\s+by the time\s+.+$", "", value, flags=re.I)
+    value = re.sub(r"\s+i first\s+.+$", "", value, flags=re.I)
+    value = re.sub(r"\s+that meant\s+.+$", "", value, flags=re.I)
+    return _trim(value, 72)
+
+
 def _balanced(title: str, evidence: str, source_text: str, generation: int = 0) -> str:
     become = _extract_become_pattern(evidence)
     if become:
@@ -194,7 +256,7 @@ def _balanced(title: str, evidence: str, source_text: str, generation: int = 0) 
         ]
         return options[generation % len(options)]
 
-    return _trim(_strip_discourse(title or evidence), 72)
+    return _fallback_seed(title, evidence)
 
 
 def _breaking(title: str, evidence: str, source_text: str, generation: int = 0) -> str:
@@ -237,7 +299,12 @@ def _breaking(title: str, evidence: str, source_text: str, generation: int = 0) 
     if because:
         return _trim(_strip_discourse(because.group(1)), 64)
 
-    return _trim(_strip_discourse(title or evidence), 62)
+    base = _fallback_seed(title, evidence)
+    if ":" in base:
+        left, right = [part.strip() for part in base.split(":", 1)]
+        if left and right:
+            return _trim(f"{left} — {right}", 68)
+    return _trim(base, 68)
 
 
 def _explainer(title: str, evidence: str, source_text: str, generation: int = 0) -> str:
@@ -268,9 +335,13 @@ def _explainer(title: str, evidence: str, source_text: str, generation: int = 0)
         ]
         return options[generation % len(options)]
 
-    base = _strip_discourse(title or evidence)
+    base = _fallback_seed(title, evidence)
     base = re.sub(r"^That meant\s+", "", base, flags=re.I)
-    return _trim("How " + _lower_first(base), 78)
+    if ":" in base:
+        left, right = [part.strip() for part in base.split(":", 1)]
+        if left and right:
+            return _trim(f"How the source links {left} to {right}", 82)
+    return _trim(f"How the source frames {_lower_first(base)}", 82)
 
 
 def _social(title: str, evidence: str, source_text: str, generation: int = 0) -> str:
@@ -283,29 +354,34 @@ def _social(title: str, evidence: str, source_text: str, generation: int = 0) ->
         if len(chain) >= 3:
             options.append(" → ".join(chain))
         options.extend([
-            "ONE PIECE OF REPORTING → MULTIPLE FORMATS",
-            "VERTICAL VIDEO → LANDSCAPE → ARTICLE → CAROUSEL → SOCIAL",
+            "One Piece of Reporting → Multiple Formats",
+            "Vertical Video → Landscape → Article → Carousel → Social",
         ])
         return _trim(options[generation % len(options)], 74)
 
     keep = _extract_keep_pattern(evidence)
     if keep:
         options = [
-            "SOURCE → STORY → SOURCE TRAIL",
-            "KEEP THE SOURCE ATTACHED",
-            "ONE STORY. SOURCE EVIDENCE INCLUDED.",
+            "Source → Story → Source Trail",
+            "Keep the Source Attached",
+            "One Story. Source Evidence Included.",
         ]
         return options[generation % len(options)]
 
     if _extract_faster_pattern(evidence):
         options = [
-            "LESS SEARCHING. FASTER TEAM.",
-            "SOURCE TRAIL ATTACHED → LESS SEARCHING",
-            "FIND THE CLAIM ONCE. KEEP THE SOURCE.",
+            "Less Searching. Faster Team.",
+            "Source Trail Attached → Less Searching",
+            "Find the Claim Once. Keep the Source.",
         ]
         return options[generation % len(options)]
 
-    return _trim(_capitalize(_strip_discourse(title or evidence)), 54)
+    base = _fallback_seed(title, evidence)
+    if ":" in base:
+        left, right = [part.strip() for part in base.split(":", 1)]
+        if left and right:
+            return _trim(f"{left} → {right}", 64)
+    return _trim(base, 64)
 
 
 def hook_from_headline(headline: str, mode: str) -> str:
@@ -316,7 +392,7 @@ def hook_from_headline(headline: str, mode: str) -> str:
     if " → " in value:
         parts = [part.strip() for part in value.split(" → ") if part.strip()]
         hook = " → ".join(parts[:3])
-        return hook.upper() if mode in {"breaking", "social"} else hook
+        return hook
 
     become = re.search(r"^(.+?)\s+(?:Can\s+)?Become\s+(.+)$", value, re.I)
     if become:
@@ -324,13 +400,13 @@ def hook_from_headline(headline: str, mode: str) -> str:
         items = [item.strip() for item in re.split(r",\s*|\s+or\s+|\s+and\s+", become.group(2)) if item.strip()]
         if items:
             hook = f"{subject}: {', '.join(items[:2])}"
-            return _trim(hook.upper() if mode in {"breaking", "social"} else hook, 58)
+            return _trim(hook, 58)
 
     if mode == "explainer":
         return _trim(value, 60)
 
     limit = 50 if mode == "social" else 56
-    return _trim(value.upper() if mode in {"breaking", "social"} else value, limit)
+    return _trim(value, limit)
 
 
 def _tokens(value: str) -> set[str]:
@@ -373,8 +449,9 @@ def sourceguard_headline(headline: str, evidence: str, source_text: str = "") ->
         if token not in SAFE_FRAME_WORDS
     }
 
-    overlap = len(headline_tokens & source_tokens)
-    grounding_score = round((overlap / max(len(headline_tokens), 1)) * 100)
+    score_tokens = {token for token in headline_tokens if token not in SAFE_FRAME_WORDS}
+    overlap = len(score_tokens & source_tokens)
+    grounding_score = round((overlap / max(len(score_tokens), 1)) * 100)
 
     if len(new_tokens) > 1:
         needs_review = True

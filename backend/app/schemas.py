@@ -36,6 +36,61 @@ class SourceOut(ORMModel):
     created_at: datetime
 
 
+class SourceLibraryItemOut(BaseModel):
+    id: str
+    kind: str
+    title: str | None = None
+    original_url: str | None = None
+    status: str
+    created_at: datetime
+    story_count: int = 0
+    has_transcript: bool = False
+    storage_filename: str | None = None
+    storage_size: int | None = None
+    content_type: str | None = None
+
+
+class SourceLibraryOut(BaseModel):
+    sources: list[SourceLibraryItemOut]
+    total: int
+    indexed: int
+    uploaded: int
+    needs_attention: int
+
+
+class IngestionJobOut(ORMModel):
+    id: str
+    workspace_id: str
+    source_id: str
+    job_type: str
+    provider: str
+    status: str
+    attempts: int
+    error_message: str | None = None
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
+    created_at: datetime
+    updated_at: datetime
+
+
+class TranscriptSegmentOut(ORMModel):
+    id: str
+    source_id: str
+    sequence: int
+    start_ms: int
+    end_ms: int
+    speaker: str | None = None
+    text: str
+    confidence: float | None = None
+
+
+class SourceTranscriptOut(BaseModel):
+    source_id: str
+    status: str
+    transcript_text: str | None = None
+    segments: list[TranscriptSegmentOut]
+
+
 class StoryCreate(BaseModel):
     workspace_slug: str = "demo"
     source_id: str
@@ -109,6 +164,11 @@ class StoryAngleOut(BaseModel):
     location: str
     signal: str
     verification_level: Literal["direct_extract"]
+    source_start_char: int | None = None
+    source_end_char: int | None = None
+    start_ms: int | None = None
+    end_ms: int | None = None
+    speaker: str | None = None
 
 
 class SourceGuardTraceOut(BaseModel):
@@ -117,6 +177,9 @@ class SourceGuardTraceOut(BaseModel):
     headline: str | None = None
     evidence: str | None = None
     location: str | None = None
+    start_ms: int | None = None
+    end_ms: int | None = None
+    speaker: str | None = None
     context: str
 
 

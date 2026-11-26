@@ -72,6 +72,7 @@ This opens:
 
 - frontend: `http://localhost:5500/app.html`
 - backend: `http://127.0.0.1:8000`
+- ingestion worker: queued media transcription/indexing
 
 A Cloudflare quick tunnel is no longer required for ordinary development. Use the optional tunnel only for a provider flow that specifically needs a public callback:
 
@@ -99,9 +100,10 @@ The hosted public application already talks to the permanent backend. Some produ
 
 After the authentication/workspace branch is validated and deployed safely:
 
-1. real binary media upload/object storage
-2. asynchronous transcription/extraction with timestamps
-3. real Story Pack content generation
+1. real binary media upload/object storage — implemented on the media ingestion branch
+2. queued transcription with timestamped/speaker segments — implemented, provider key required for live calls
+3. PDF extraction and durable production worker deployment
+4. real Story Pack content generation
 4. TikTok Content Posting adapter behind an approval/feature gate
 5. first pilot users
 

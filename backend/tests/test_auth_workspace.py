@@ -1,10 +1,14 @@
 import os
+import shutil
 from pathlib import Path
 
 os.environ["APP_ENV"] = "test"
 os.environ["DATABASE_URL"] = "sqlite:///./headline_avenue_test.db"
 os.environ["AUTH_COOKIE_SECURE"] = "false"
 os.environ["TOKEN_ENCRYPTION_KEY"] = "vP3YScmTVY-fyL7pLvsoGNNJV0iA0Qvj60p6UfLSCK4="
+os.environ["MEDIA_STORAGE_BACKEND"] = "local"
+os.environ["MEDIA_LOCAL_DIR"] = "./test_uploads"
+os.environ["MEDIA_MAX_UPLOAD_MB"] = "5"
 
 from fastapi.testclient import TestClient
 
@@ -13,11 +17,13 @@ from app.main import app
 
 
 DB_PATH = Path("headline_avenue_test.db")
+UPLOAD_ROOT = Path("test_uploads")
 
 
 def reset_database() -> None:
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
+    shutil.rmtree(UPLOAD_ROOT, ignore_errors=True)
 
 
 def register(client: TestClient, email: str, name: str) -> dict:
@@ -270,3 +276,366 @@ def test_story_desk_uses_authenticated_workspace_data() -> None:
         assert item["sourceguard_status"] == "supported"
         assert item["publish_status"] == "drafting"
         assert item["output_count"] == 0
+
+
+def test_binary_media_upload_is_private_workspace_source() -> None:
+    reset_database()
+    with TestClient(app) as client:
+        session = register(client, "media@example.com", "Media")
+        workspace_id = session["active_workspace_id"]
+        headers = {
+            "X-Workspace-ID": workspace_id,
+            "X-CSRF-Token": session["csrf_token"],
+        }
+
+        payload = b"fake-mp4-payload-for-private-storage"
+        response = client.post(
+            "/api/v1/sources/upload",
+            headers=headers,
+            data={"kind": "video"},
+            files={"file": ("interview.mp4", payload, "video/mp4")},
+        )
+        assert response.status_code == 201, response.text
+        source = response.json()
+        assert source["kind"] == "video"
+        assert source["status"] == "uploaded"
+
+        media = source["metadata_json"]["media"]
+        assert media["backend"] == "local"
+        assert media["filename"] == "interview.mp4"
+        assert media["content_type"] == "video/mp4"
+        assert media["size"] == len(payload)
+        assert media["private"] is True
+        assert media["sha256"]
+
+        stored_path = UPLOAD_ROOT / media["key"]
+        assert stored_path.exists()
+        assert stored_path.read_bytes() == payload
+
+        library = client.get(
+            "/api/v1/sources/library",
+            headers={"X-Workspace-ID": workspace_id},
+        )
+        assert library.status_code == 200, library.text
+        library_payload = library.json()
+        assert library_payload["total"] == 1
+        assert library_payload["uploaded"] == 1
+        assert library_payload["indexed"] == 0
+        assert library_payload["needs_attention"] == 0
+        item = library_payload["sources"][0]
+        assert item["id"] == source["id"]
+        assert item["storage_filename"] == "interview.mp4"
+        assert item["storage_size"] == len(payload)
+        assert item["has_transcript"] is False
+
+
+def test_media_upload_rejects_wrong_content_type() -> None:
+    reset_database()
+    with TestClient(app) as client:
+        session = register(client, "badmedia@example.com", "BadMedia")
+        headers = {
+            "X-Workspace-ID": session["active_workspace_id"],
+            "X-CSRF-Token": session["csrf_token"],
+        }
+        response = client.post(
+            "/api/v1/sources/upload",
+            headers=headers,
+            data={"kind": "audio"},
+            files={"file": ("not-audio.txt", b"hello", "text/plain")},
+        )
+        assert response.status_code == 400
+
+
+def test_transcription_job_indexes_source_with_timestamped_segments(monkeypatch) -> None:
+    from app import ingestion_worker
+    from app.services.transcription import (
+        TranscriptSegmentResult,
+        TranscriptionResult,
+    )
+
+    reset_database()
+    with TestClient(app) as client:
+        session = register(client, "transcribe@example.com", "Transcribe")
+        workspace_id = session["active_workspace_id"]
+        headers = {
+            "X-Workspace-ID": workspace_id,
+            "X-CSRF-Token": session["csrf_token"],
+        }
+
+        upload = client.post(
+            "/api/v1/sources/upload",
+            headers=headers,
+            data={"kind": "video"},
+            files={"file": ("interview.mp4", b"fake-video-bytes", "video/mp4")},
+        )
+        assert upload.status_code == 201, upload.text
+        source_id = upload.json()["id"]
+
+        queued = client.post(
+            f"/api/v1/sources/{source_id}/transcribe",
+            headers=headers,
+        )
+        assert queued.status_code == 202, queued.text
+        job = queued.json()
+        assert job["source_id"] == source_id
+        assert job["status"] == "queued"
+        assert job["job_type"] == "transcription"
+
+        fake_result = TranscriptionResult(
+            text="Speaker zero opens the story. Speaker one answers the question.",
+            segments=[
+                TranscriptSegmentResult(
+                    sequence=0,
+                    start_ms=250,
+                    end_ms=2250,
+                    speaker="0",
+                    text="Speaker zero opens the story.",
+                    confidence=0.97,
+                ),
+                TranscriptSegmentResult(
+                    sequence=1,
+                    start_ms=2400,
+                    end_ms=5100,
+                    speaker="1",
+                    text="Speaker one answers the question.",
+                    confidence=0.94,
+                ),
+            ],
+            provider="deepgram",
+            model="nova-3",
+            request_id="dg-test-request",
+            language="en",
+            duration_seconds=5.2,
+        )
+        monkeypatch.setattr(
+            ingestion_worker,
+            "transcribe_media",
+            lambda media: fake_result,
+        )
+
+        assert ingestion_worker.process_one() is True
+
+        transcript = client.get(
+            f"/api/v1/sources/{source_id}/transcription",
+            headers={"X-Workspace-ID": workspace_id},
+        )
+        assert transcript.status_code == 200, transcript.text
+        payload = transcript.json()
+        assert payload["status"] == "indexed"
+        assert payload["transcript_text"] == fake_result.text
+        assert len(payload["segments"]) == 2
+        assert payload["segments"][0]["start_ms"] == 250
+        assert payload["segments"][0]["end_ms"] == 2250
+        assert payload["segments"][0]["speaker"] == "0"
+        assert payload["segments"][1]["speaker"] == "1"
+
+        library = client.get(
+            "/api/v1/sources/library",
+            headers={"X-Workspace-ID": workspace_id},
+        )
+        assert library.status_code == 200, library.text
+        library_payload = library.json()
+        assert library_payload["indexed"] == 1
+        assert library_payload["uploaded"] == 0
+        assert library_payload["sources"][0]["has_transcript"] is True
+
+        second_pass = ingestion_worker.process_one()
+        assert second_pass is False
+
+
+def test_video_story_analysis_maps_angles_to_timestamped_evidence() -> None:
+    from app.database import SessionLocal
+    from app.models import Source, SourceTranscriptSegment
+
+    reset_database()
+    with TestClient(app) as client:
+        session = register(client, "timestamp@example.com", "Timestamp")
+        workspace_id = session["active_workspace_id"]
+        headers = {
+            "X-Workspace-ID": workspace_id,
+            "X-CSRF-Token": session["csrf_token"],
+        }
+
+        source = client.post(
+            "/api/v1/sources",
+            headers=headers,
+            json={
+                "kind": "video",
+                "title": "Timestamped interview",
+                "transcript_text": (
+                    "Warhol changed how artists thought about celebrity and commerce. "
+                    "Valerie later described the atmosphere around the Chelsea Hotel in detail. "
+                    "The interview then returned to how public attention shaped the work."
+                ),
+            },
+        )
+        assert source.status_code == 201, source.text
+        source_id = source.json()["id"]
+
+        db = SessionLocal()
+        try:
+            db.add_all([
+                SourceTranscriptSegment(
+                    source_id=source_id,
+                    sequence=0,
+                    start_ms=1000,
+                    end_ms=4200,
+                    speaker="0",
+                    text="Warhol changed how artists thought about celebrity and commerce.",
+                    confidence=0.97,
+                ),
+                SourceTranscriptSegment(
+                    source_id=source_id,
+                    sequence=1,
+                    start_ms=4300,
+                    end_ms=8900,
+                    speaker="1",
+                    text="Valerie later described the atmosphere around the Chelsea Hotel in detail.",
+                    confidence=0.96,
+                ),
+                SourceTranscriptSegment(
+                    source_id=source_id,
+                    sequence=2,
+                    start_ms=9000,
+                    end_ms=13200,
+                    speaker="0",
+                    text="The interview then returned to how public attention shaped the work.",
+                    confidence=0.95,
+                ),
+            ])
+            db.commit()
+        finally:
+            db.close()
+
+        story = client.post(
+            "/api/v1/stories",
+            headers=headers,
+            json={"source_id": source_id, "title": "Timestamped story"},
+        )
+        assert story.status_code == 201, story.text
+        story_id = story.json()["id"]
+
+        analyzed = client.post(
+            f"/api/v1/stories/{story_id}/analyze",
+            headers=headers,
+        )
+        assert analyzed.status_code == 200, analyzed.text
+        payload = analyzed.json()
+        assert payload["angles"]
+        top = payload["angles"][0]
+        assert top["start_ms"] is not None
+        assert top["end_ms"] is not None
+        assert top["location"].startswith("Video · 00:")
+        assert "character" not in top["location"]
+
+        evidence = client.get(
+            f"/api/v1/stories/{story_id}/evidence",
+            headers={"X-Workspace-ID": workspace_id},
+        )
+        assert evidence.status_code == 200, evidence.text
+        items = evidence.json()
+        assert items
+        assert any(item["start_ms"] is not None and item["end_ms"] is not None for item in items)
+
+
+
+def test_transcript_editorial_titles_are_readable_not_raw_asr_shouting() -> None:
+    from app.services.editorial_intelligence import build_editorial_variants
+    from app.services.source_intelligence import build_story_angles
+
+    source_text = (
+        "WARHALL WERE THE FIRST SHOTS OF A REVOLUTION BY THE TIME VALERIE WAS 15 "
+        "SHE HAD GIVEN BIRTH TWICE AND THE INTERVIEW CONTINUED INTO A MUCH LONGER "
+        "PERSONAL ACCOUNT OF WHAT HAPPENED NEXT."
+    )
+
+    angles = build_story_angles(source_text, limit=3)
+    assert angles
+    top = angles[0]
+    assert top["title"] == "Warhall: The First Shots of a Revolution"
+    assert not top["title"].endswith("…")
+    assert len(top["title"]) < 60
+
+    variants = build_editorial_variants(top, source_text=source_text, generation=0)
+    headlines = [item["headline"] for item in variants]
+    assert len(headlines) >= 3
+    assert len(set(headlines)) == len(headlines)
+    assert all(len(headline) <= 82 for headline in headlines)
+    assert all(headline != headline.upper() for headline in headlines if any(ch.isalpha() for ch in headline))
+    assert any(headline.startswith("How the source links") for headline in headlines)
+    assert any(" → " in headline for headline in headlines)
+
+
+
+def test_loaded_or_incomplete_transcript_fragments_are_downranked() -> None:
+    from app.services.source_intelligence import build_story_angles
+
+    source_text = (
+        "The sick, irrational men, those who attempt to defend themselves against their own. "
+        "The interview later described how public attention changed the work and why the shift mattered. "
+        "The scum manifesto had clearly laid out the radical pieces. "
+        "A later section explained how the artist's public image shaped the response."
+    )
+
+    angles = build_story_angles(source_text, limit=3)
+    assert angles
+    assert "sick, irrational" not in angles[0]["title"].lower()
+    assert not angles[0]["title"].lower().endswith("their own")
+
+
+def test_generic_headline_lab_uses_editorial_framing_not_scaffolding_phrases() -> None:
+    from app.services.editorial_intelligence import build_editorial_variants
+
+    angle = {
+        "title": "Warhall: The First Shots of a Revolution",
+        "excerpt": "WARHALL WERE THE FIRST SHOTS OF A REVOLUTION",
+    }
+    variants = build_editorial_variants(angle, source_text=angle["excerpt"], generation=0)
+    by_mode = {item["mode"]: item for item in variants}
+
+    assert by_mode["balanced"]["headline"] == "Warhall: The First Shots of a Revolution"
+    assert by_mode["breaking"]["headline"] == "Warhall — The First Shots of a Revolution"
+    assert by_mode["explainer"]["headline"] == "How the source links Warhall to The First Shots of a Revolution"
+    assert by_mode["social"]["headline"] == "Warhall → The First Shots of a Revolution"
+    assert all("What the source says about" not in item["headline"] for item in variants)
+    assert all("In one line:" not in item["headline"] for item in variants)
+
+
+
+def test_mixed_asr_caps_are_normalized_without_destroying_acronyms() -> None:
+    from app.services.editorial_intelligence import build_editorial_variants
+    from app.services.source_intelligence import build_story_angles
+
+    source_text = (
+        "WARHALL WERE THE FIRST SHOTS OF A REVOLUTION by the time the interview turned to NASA and AI."
+    )
+    angles = build_story_angles(source_text, limit=1)
+    assert angles
+    assert angles[0]["title"] == "Warhall: The First Shots of a Revolution"
+
+    mixed_angle = {
+        "title": "WARHALL: The First Shots of a REVOLUTION involving NASA and AI",
+        "excerpt": source_text,
+    }
+    variants = build_editorial_variants(mixed_angle, source_text=source_text, generation=0)
+    headlines = [item["headline"] for item in variants]
+    assert headlines
+    assert all("WARHALL" not in headline for headline in headlines)
+    assert all("REVOLUTION" not in headline for headline in headlines)
+    assert any("NASA" in headline for headline in headlines)
+    assert any("AI" in headline for headline in headlines)
+
+
+def test_profane_incomplete_transcript_fragment_is_not_top_angle() -> None:
+    from app.services.source_intelligence import build_story_angles
+
+    source_text = (
+        "We need to make them face their greatest fear, their pussy envy, and we need to do it in. "
+        "The interview later explains how public attention shaped the artist's work and changed the response. "
+        "A separate section describes how the Chelsea Hotel became central to the story."
+    )
+
+    angles = build_story_angles(source_text, limit=3)
+    assert angles
+    assert "pussy" not in angles[0]["title"].lower()
+    assert not angles[0]["title"].lower().endswith(" in")

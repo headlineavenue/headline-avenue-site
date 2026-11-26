@@ -141,12 +141,19 @@ document.addEventListener("DOMContentLoaded",()=>{
     if(summary)summary.textContent=label+" · "+(formats.length?formats.join(" + "):"No video format")+" · "+mode;
     const guard=document.querySelector(".create-submit-row small");
     if(guard)guard.textContent=document.getElementById("create-sourceguard")?.checked?"SourceGuard enabled":"SourceGuard off";
+    const submit=document.querySelector("#create-builder-form .create-submit");
+    if(submit){
+      submit.textContent=["upload","audio","pdf"].includes(createSourceType)
+        ?"Upload source →"
+        :"Build Story Workspace →";
+    }
   };
 
   sourceTypeButtons.forEach(btn=>btn.addEventListener("click",()=>{
     createSourceType=btn.dataset.sourceType;
     sourceTypeButtons.forEach(b=>b.classList.toggle("active",b===btn));
     sourcePanes.forEach(p=>p.classList.toggle("active",p.dataset.sourcePane===createSourceType));
+    updateCreateSummary();
   }));
 
   document.getElementById("sample-source")?.addEventListener("click",()=>{
@@ -271,11 +278,41 @@ document.addEventListener("DOMContentLoaded",()=>{
     try{
       if(!(await apiIsReady()))throw new Error("Headline Avenue API is not running on port 8000.");
 
+      if(["upload","audio","pdf"].includes(createSourceType)){
+        const inputId=createSourceType==="upload"
+          ?"create-file-upload"
+          :createSourceType==="audio"
+            ?"create-audio-upload"
+            :"create-pdf-upload";
+        const file=document.getElementById(inputId)?.files?.[0];
+        if(!file)throw new Error("Choose a file first.");
+
+        const formData=new FormData();
+        formData.append("kind",createSourceType==="upload"?"video":createSourceType);
+        formData.append("file",file,file.name);
+
+        const response=await fetch(API_BASE+"/sources/upload",{
+          method:"POST",
+          body:formData
+        });
+        if(!response.ok){
+          let detail="";
+          try{detail=(await response.json())?.detail||""}catch{detail=await response.text()}
+          throw new Error("Upload "+response.status+(detail?": "+detail:""));
+        }
+
+        const source=await response.json();
+        openView("sources");
+        window.HeadlineAvenueLoadSourceLibrary?.();
+        showToast(source.title+" uploaded — awaiting transcription");
+        return;
+      }
+
       const source=await apiRequest("/sources",{
         method:"POST",
         body:JSON.stringify({
           workspace_slug:"headline-avenue",
-          kind:createSourceType==="upload"?"video":createSourceType,
+          kind:createSourceType,
           title:sourceTitle||null,
           original_url:sourceUrl||null,
           transcript_text:transcriptText,
@@ -307,81 +344,8 @@ document.addEventListener("DOMContentLoaded",()=>{
   updateCreateSummary();
 
 
-  // Sources / intelligence library
-  const sourceRows=[...document.querySelectorAll("#source-library-list .source-row")];
-  const sourceTabs=[...document.querySelectorAll("[data-source-tab]")];
-  const sourceSearch=document.getElementById("source-search-input");
-  const sourceStatus=document.getElementById("source-status-filter");
-  const sourceSort=document.getElementById("source-sort");
-  let sourceTypeFilter="all";
-
-  const applySourceFilters=()=>{
-    const q=(sourceSearch?.value||"").trim().toLowerCase();
-    const status=sourceStatus?.value||"all";
-    sourceRows.forEach(row=>{
-      const typeOk=sourceTypeFilter==="all"||row.dataset.type===sourceTypeFilter;
-      const statusOk=status==="all"||row.dataset.status===status;
-      const hay=(row.dataset.title+" "+row.dataset.origin+" "+row.dataset.type).toLowerCase();
-      row.hidden=!(typeOk&&statusOk&&(!q||hay.includes(q)));
-    });
-    const visible=sourceRows.filter(r=>!r.hidden);
-    const count=document.getElementById("source-visible-count");
-    if(count)count.textContent=visible.length;
-    const empty=document.getElementById("source-empty-filter");
-    if(empty)empty.hidden=visible.length!==0;
-  };
-
-  sourceTabs.forEach(tab=>tab.addEventListener("click",()=>{
-    sourceTabs.forEach(t=>t.classList.remove("active"));
-    tab.classList.add("active");
-    sourceTypeFilter=tab.dataset.sourceTab;
-    applySourceFilters();
-  }));
-  sourceSearch?.addEventListener("input",applySourceFilters);
-  sourceStatus?.addEventListener("change",applySourceFilters);
-  sourceSort?.addEventListener("change",()=>{
-    const list=document.getElementById("source-library-list");
-    const mode=sourceSort.value;
-    const sorted=[...sourceRows].sort((a,b)=>{
-      if(mode==="stories")return Number(b.dataset.stories)-Number(a.dataset.stories);
-      if(mode==="title")return a.dataset.title.localeCompare(b.dataset.title);
-      return 0;
-    });
-    sorted.forEach(r=>list.appendChild(r));
-    applySourceFilters();
-  });
-
+  // Sources / intelligence library is rendered by real-sources.js.
   document.getElementById("add-source-btn")?.addEventListener("click",()=>openView("create"));
-  document.querySelectorAll("[data-source-create]").forEach(btn=>btn.addEventListener("click",()=>{
-    openView("create");
-    const url=btn.dataset.sourceUrl||"";
-    const input=document.getElementById("create-source-url");
-    sourceTypeButtons.forEach(b=>b.classList.toggle("active",b.dataset.sourceType==="url"));
-    sourcePanes.forEach(p=>p.classList.toggle("active",p.dataset.sourcePane==="url"));
-    createSourceType="url";
-    if(input){input.value=url;input.focus()}
-    showToast("Source loaded into Story Studio");
-  }));
-  document.querySelectorAll("[data-source-open]").forEach(btn=>btn.addEventListener("click",()=>{
-    const row=btn.closest(".source-row");
-    showToast((row?.dataset.title||"Source")+" opened — detail panel coming with backend.");
-  }));
-  document.querySelectorAll("[data-source-reindex]").forEach(btn=>btn.addEventListener("click",()=>{
-    const row=btn.closest(".source-row");
-    const state=row?.querySelector(".index-state");
-    if(state){state.textContent="◌ Queued";state.className="index-state indexing"}
-    btn.textContent="Queued";
-    showToast("Source added to the indexing queue");
-  }));
-  document.querySelectorAll("[data-source-watch-toggle]").forEach(btn=>btn.addEventListener("click",()=>{
-    const paused=btn.textContent==="Resume";
-    btn.textContent=paused?"Pause":"Resume";
-    showToast(paused?"Watchlist resumed":"Watchlist paused");
-  }));
-  document.querySelectorAll("[data-watch-demo]").forEach(btn=>btn.addEventListener("click",()=>showToast("Watchlist details will open here.")));
-  document.getElementById("new-watchlist-btn")?.addEventListener("click",()=>showToast("Watchlist builder is next on the roadmap."));
-  document.getElementById("load-more-sources")?.addEventListener("click",()=>showToast("More sources will load from the backend."));
-  applySourceFilters();
 
 
   // Publisher / distribution desk

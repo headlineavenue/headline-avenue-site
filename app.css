@@ -256,3 +256,33 @@ button:disabled{opacity:.42;cursor:not-allowed;transform:none!important;filter:n
 .recommendation-list button.saved{background:rgba(80,229,161,.035)}.recommendation-list button.saved .rec-icon{color:var(--green);background:rgba(80,229,161,.07)}
 .analytics-period button,.source-type-tabs button,.format-pills button,.mode-pills button,.schedule-pills button{transition:background .15s,border-color .15s,color .15s,transform .15s}
 .analytics-period button:hover,.source-type-tabs button:hover,.format-pills button:hover,.mode-pills button:hover,.schedule-pills button:hover{transform:translateY(-1px)}
+
+
+/* === STORY WORKSPACE READABILITY PASS === */
+@media(min-width:1001px){
+  #story-workspace .polished-story-head h2{font-size:2.3rem;line-height:1.08}
+  #story-workspace .polished-story-head p{font-size:.78rem}
+  #story-workspace .story-context-strip{gap:10px;margin-bottom:15px}
+  #story-workspace .story-context-strip>div{padding:13px 14px}
+  #story-workspace .story-context-strip b{font-size:.68rem}
+  #story-workspace .story-context-strip small{font-size:.57rem;line-height:1.35}
+  #story-workspace .polished-story-layout{grid-template-columns:minmax(0,1.5fr) minmax(320px,.68fr);gap:16px}
+  #story-workspace .story-left,#story-workspace .story-right{gap:16px}
+  #story-workspace .story-panel{padding:20px}
+  #story-workspace .story-panel .panel-title-row h3{font-size:1.08rem}
+  #story-workspace .story-panel .panel-title-row p,
+  #story-workspace .story-panel-copy{font-size:.65rem;line-height:1.5}
+  #story-workspace .panel-title-row>span{font-size:.64rem}
+  #story-workspace .moment-list{gap:10px}
+  #story-workspace .moment{grid-template-columns:50px minmax(0,1fr) auto;gap:12px;padding:15px 14px}
+  #story-workspace .moment strong{font-size:1.18rem}
+  #story-workspace .moment b{font-size:.84rem;line-height:1.35}
+  #story-workspace .moment small{font-size:.66rem;line-height:1.35;margin-top:4px}
+  #story-workspace .moment em{font-size:.61rem}
+  #story-workspace .claim-detail>div{grid-template-columns:112px 1fr;gap:14px;padding:12px 0;font-size:.74rem;line-height:1.5}
+  #story-workspace .unsupported-box{font-size:.69rem;line-height:1.5}
+  #story-workspace .format-grid{gap:8px}
+  #story-workspace .format-grid button{padding:12px;font-size:.68rem}
+  #story-workspace .pack-item{font-size:.68rem}
+  #story-workspace .story-action-stack small{font-size:.56rem}
+}

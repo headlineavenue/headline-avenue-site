@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - feature/media-ingestion-foundation
   pull_request:
     branches:
       - main
@@ -56,6 +57,23 @@ jobs:
           node --check auth.js
           node --check app.js
           node --check real-stories.js
+          node --check real-sources.js
+
+      - name: Check PowerShell launcher syntax
+        working-directory: .
+        shell: pwsh
+        run: |
+          $tokens = $null
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path "./start-headline-avenue.ps1"),
+            [ref]$tokens,
+            [ref]$errors
+          ) | Out-Null
+          if ($errors.Count -gt 0) {
+            $errors | ForEach-Object { Write-Error $_.Message }
+            exit 1
+          }
 
       - name: Run tests
         run: pytest -q

@@ -177,8 +177,13 @@ def verify() -> None:
     )
     assert owner_count == 1
 
+    ingestion_jobs = scalar("SELECT COUNT(*) FROM ingestion_jobs")
+    transcript_segments = scalar("SELECT COUNT(*) FROM source_transcript_segments")
+    assert ingestion_jobs == 0
+    assert transcript_segments == 0
+
     revision = scalar("SELECT version_num FROM alembic_version")
-    assert revision == "20261112_01", revision
+    assert revision == "20261113_02", revision
 
 
 if __name__ == "__main__":
